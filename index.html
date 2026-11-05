@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <style id="app-lock">html{-webkit-text-size-adjust:100%;text-size-adjust:100%}:where(html,body,*){touch-action:manipulation}</style>
 <script id="app-lock-js">(function(){var s={passive:false},p=function(e){e.preventDefault()};
 ['gesturestart','gesturechange','gestureend'].forEach(function(t){document.addEventListener(t,p,s)});
@@ -10,7 +10,6 @@ document.addEventListener('touchmove',function(e){if(e.touches&&e.touches.length
 document.addEventListener('dblclick',p,s);
 addEventListener('wheel',function(e){if(e.ctrlKey)e.preventDefault()},s);
 addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&/^[=+\-0]$/.test(e.key))e.preventDefault()});})();</script>
-
 
 <meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
 <title>朝撒旦開槍「Devil may Win」</title>
@@ -344,6 +343,28 @@ body:not(.portrait) #mpMenu .btn{font-size:calc(var(--u)*2);padding:calc(var(--u
 body:not(.portrait) #mpMenu .btn.sm{font-size:calc(var(--u)*1.6)}
 body:not(.portrait) #mpMenu .panel,body:not(.portrait) #mpMenu.screen .panel{padding-top:calc(var(--u)*1.6);padding-bottom:calc(var(--u)*1.6)}
 
+/* ===== 契約：單頁呈現、無需捲動 ===== */
+#waiver{--wf:min(calc(var(--u)*1.45),calc(var(--v)*2.5))}
+body.portrait #waiver{--wf:min(calc(var(--u)*1.85),calc(var(--v)*1.5))}
+#waiver .panel.wv{max-width:92%;max-height:97%;overflow:hidden;padding:calc(var(--wf)*1.2) calc(var(--wf)*2);text-align:left;display:flex;flex-direction:column;gap:calc(var(--wf)*.55)}
+#waiver .wv h3{text-align:center;font-size:calc(var(--wf)*1.9);letter-spacing:.06em;margin:0;padding-bottom:calc(var(--wf)*.5);border-bottom:2px double #2a2018}
+#waiver .cl b{display:block;font-size:calc(var(--wf)*1.15);color:#6e0909;letter-spacing:.04em;font-family:"Songti TC","Noto Serif TC",serif;margin-bottom:calc(var(--wf)*.12)}
+#waiver .cl p{font-size:var(--wf);line-height:1.45;margin:0;color:#2a2018;text-wrap:pretty}
+#waiver .wvc{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--wf)*.7) calc(var(--wf)*2.2)}
+#waiver .wvc .cl:last-child{grid-column:1/3}
+body.portrait #waiver .wvc{grid-template-columns:1fr;gap:calc(var(--wf)*.7)}
+body.portrait #waiver .wvc .cl:last-child{grid-column:auto}
+#waiver .wvs{display:flex;align-items:flex-end;gap:calc(var(--wf)*.6);margin-top:calc(var(--wf)*.3)}
+#waiver .wvs .wl{font-size:calc(var(--wf)*1.25);font-weight:800;white-space:nowrap;padding-bottom:calc(var(--wf)*.3)}
+#waiver .wvs .sig{flex:1;margin:0;height:calc(var(--wf)*4);min-width:0;font-size:calc(var(--wf)*1.2)}
+body.portrait #waiver .wvs .sig{height:calc(var(--wf)*4.4);font-size:calc(var(--wf)*1.2)}
+#waiver .wvt{font-size:var(--wf);color:#3a2e24}
+#waiver .wvq{text-align:center;font-size:var(--wf);font-style:italic;color:#6e0909;font-family:"Songti TC","Noto Serif TC",serif;border-top:1px solid #8a7a64;padding-top:calc(var(--wf)*.45);text-wrap:balance}
+#waiver .btn{align-self:center;margin:calc(var(--wf)*.1) 0 0;padding-top:calc(var(--wf)*.5);padding-bottom:calc(var(--wf)*.5);font-size:calc(var(--wf)*1.2)}
+#waiver #signWait{text-align:center;margin:0;min-height:1.1em;font-size:calc(var(--wf)*.95)}
+#waiver .wv h3 i{font-style:normal;margin:0 .25em}
+body.portrait #waiver .wv h3 span{display:block}body.portrait #waiver .wv h3 i{display:none}
+
 </style>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -381,13 +402,14 @@ body:not(.portrait) #mpMenu .panel,body:not(.portrait) #mpMenu.screen .panel{pad
       <div class="logowrap"><svg class="logo" viewBox="0 0 400 236" role="img" aria-label="朝撒旦開槍 Devil may Win">
 <defs>
 <linearGradient id="lgW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#f6ece0"/><stop offset="1" stop-color="#dcb9ac"/></linearGradient>
+<linearGradient id="lgT" gradientUnits="userSpaceOnUse" x1="0" y1="36" x2="0" y2="104"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#f6ece0"/><stop offset="1" stop-color="#dcb9ac"/></linearGradient>
 <linearGradient id="lgB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ee1c1c"/><stop offset="1" stop-color="#7d0707"/></linearGradient>
 <filter id="rough" x="-4%" y="-6%" width="108%" height="116%"><feTurbulence type="fractalNoise" baseFrequency=".04" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.4"/></filter>
 <filter id="blur"><feGaussianBlur stdDeviation="9"/></filter>
 </defs>
 <ellipse cx="200" cy="100" rx="190" ry="70" fill="#8d0505" opacity=".5" filter="url(#blur)"/>
 <g filter="url(#rough)" stroke-linecap="round">
-<g font-family="'Noto Serif TC','Songti TC','Source Han Serif TC','PMingLiU','Microsoft JhengHei',serif" font-weight="900"><text x="24" y="96" font-size="88" textLength="352" lengthAdjust="spacingAndGlyphs" fill="none" stroke="#6e0909" stroke-width="21" stroke-linejoin="round" transform="translate(0,4)">朝撒旦開槍</text><text x="24" y="96" font-size="88" textLength="352" lengthAdjust="spacingAndGlyphs" fill="none" stroke="#0f0101" stroke-width="15" stroke-linejoin="round">朝撒旦開槍</text><text x="24" y="96" font-size="88" textLength="352" lengthAdjust="spacingAndGlyphs" fill="url(#lgW)" stroke="#2a0505" stroke-width="1.2" paint-order="stroke" stroke-linejoin="round">朝撒旦開槍</text></g>
+<g font-family="'Noto Serif TC','Songti TC','Source Han Serif TC','PMingLiU','Microsoft JhengHei',serif" font-weight="900" stroke-linejoin="round"><g fill="none" stroke="#6e0909" stroke-width="21" transform="translate(0,4)"><text x="59.2" y="96" font-size="76" text-anchor="middle">朝</text><text x="129.6" y="96" font-size="76" text-anchor="middle">撒</text><text x="200.0" y="96" font-size="76" text-anchor="middle">旦</text><text x="270.4" y="96" font-size="76" text-anchor="middle">開</text><text x="340.8" y="96" font-size="76" text-anchor="middle">槍</text></g><g fill="none" stroke="#0f0101" stroke-width="15"><text x="59.2" y="96" font-size="76" text-anchor="middle">朝</text><text x="129.6" y="96" font-size="76" text-anchor="middle">撒</text><text x="200.0" y="96" font-size="76" text-anchor="middle">旦</text><text x="270.4" y="96" font-size="76" text-anchor="middle">開</text><text x="340.8" y="96" font-size="76" text-anchor="middle">槍</text></g><g fill="#f6ece0" stroke="#2a0505" stroke-width="1.2" paint-order="stroke"><text x="59.2" y="96" font-size="76" text-anchor="middle">朝</text><text x="129.6" y="96" font-size="76" text-anchor="middle">撒</text><text x="200.0" y="96" font-size="76" text-anchor="middle">旦</text><text x="270.4" y="96" font-size="76" text-anchor="middle">開</text><text x="340.8" y="96" font-size="76" text-anchor="middle">槍</text></g><g fill="url(#lgT)"><text x="59.2" y="96" font-size="76" text-anchor="middle">朝</text><text x="129.6" y="96" font-size="76" text-anchor="middle">撒</text><text x="200.0" y="96" font-size="76" text-anchor="middle">旦</text><text x="270.4" y="96" font-size="76" text-anchor="middle">開</text><text x="340.8" y="96" font-size="76" text-anchor="middle">槍</text></g></g>
 <g fill="url(#lgB)" stroke="#1a0202" stroke-width="2"><g class="dp" style="--L:34;--T:3.6s;--D:-0.0s"><rect class="ds" x="48" y="92" width="11" height="34" rx="5.5"/><g class="dd"><path d="M53.5 118 C53.5 124 61 130 61 137 C61 146 46 146 46 137 C46 130 53.5 124 53.5 118 Z"/><ellipse cx="49.5" cy="136" rx="1.8" ry="3.6" fill="#ffb3a8" opacity=".5" stroke="none"/></g></g><g class="dp" style="--L:22;--T:4.3s;--D:-0.9s"><rect class="ds" x="108" y="92" width="11" height="22" rx="5.5"/><g class="dd"><path d="M113.5 106 C113.5 112 121 118 121 125 C121 134 106 134 106 125 C106 118 113.5 112 113.5 106 Z"/><ellipse cx="109.5" cy="124" rx="1.8" ry="3.6" fill="#ffb3a8" opacity=".5" stroke="none"/></g></g><g class="dp" style="--L:50;--T:5.0s;--D:-1.8s"><rect class="ds" x="172" y="92" width="11" height="50" rx="5.5"/><g class="dd"><path d="M177.5 134 C177.5 140 185 146 185 153 C185 162 170 162 170 153 C170 146 177.5 140 177.5 134 Z"/><ellipse cx="173.5" cy="152" rx="1.8" ry="3.6" fill="#ffb3a8" opacity=".5" stroke="none"/></g></g><g class="dp" style="--L:28;--T:3.6s;--D:-2.7s"><rect class="ds" x="236" y="92" width="11" height="28" rx="5.5"/><g class="dd"><path d="M241.5 112 C241.5 118 249 124 249 131 C249 140 234 140 234 131 C234 124 241.5 118 241.5 112 Z"/><ellipse cx="237.5" cy="130" rx="1.8" ry="3.6" fill="#ffb3a8" opacity=".5" stroke="none"/></g></g><g class="dp" style="--L:44;--T:4.3s;--D:-3.6s"><rect class="ds" x="298" y="92" width="11" height="44" rx="5.5"/><g class="dd"><path d="M303.5 128 C303.5 134 311 140 311 147 C311 156 296 156 296 147 C296 140 303.5 134 303.5 128 Z"/><ellipse cx="299.5" cy="146" rx="1.8" ry="3.6" fill="#ffb3a8" opacity=".5" stroke="none"/></g></g><g class="dp" style="--L:18;--T:5.0s;--D:-4.5s"><rect class="ds" x="350" y="92" width="11" height="18" rx="5.5"/><g class="dd"><path d="M355.5 102 C355.5 108 363 114 363 121 C363 130 348 130 348 121 C348 114 355.5 108 355.5 102 Z"/><ellipse cx="351.5" cy="120" rx="1.8" ry="3.6" fill="#ffb3a8" opacity=".5" stroke="none"/></g></g></g>
 <g font-family="Georgia,'Times New Roman','Noto Serif TC',serif" font-weight="900" font-style="italic"><text x="22" y="208" font-size="34" textLength="356" lengthAdjust="spacing" fill="none" stroke="#6e0909" stroke-width="5.5" stroke-linejoin="round" transform="translate(0,3)">「Devil may Win」</text><text x="22" y="208" font-size="34" textLength="356" lengthAdjust="spacing" fill="none" stroke="#0f0101" stroke-width="3.6" stroke-linejoin="round">「Devil may Win」</text><text x="22" y="208" font-size="34" textLength="356" lengthAdjust="spacing" fill="url(#lgW)" stroke="#2a0505" stroke-width="1" paint-order="stroke" stroke-linejoin="round">「Devil may Win」</text></g>
 <g fill="url(#lgB)" stroke="none"><circle cx="16" cy="58" r="5"/><circle cx="384" cy="40" r="4"/><circle cx="388" cy="122" r="3"/><circle cx="12" cy="130" r="3.5"/><circle cx="378" cy="86" r="2.2"/><circle cx="26" cy="86" r="2.2"/></g>
@@ -404,10 +426,18 @@ body:not(.portrait) #mpMenu .panel,body:not(.portrait) #mpMenu.screen .panel{pad
     <div class="foot"><span class="nw">非官方粉絲致敬作品</span><i> · </i><span class="nw">美術與音效皆為原創程式繪製</span><br><span class="nw">遊戲中的槍械僅為虛構機制，切勿模仿</span></div>
   </div>
 
-  <div id="waiver" class="screen"><div class="panel paper center">
-    <h3>責任免除同意書</h3>
-    <p class="clause">本人自願參加本場賭局，並同意：</p><p class="clause"><span class="nw">一、遊戲中可能發生電擊、休克</span><br><span class="nw">及其他不可逆之後果。</span></p><p class="clause"><span class="nw">二、主辦方（莊家）不負任何責任。</span></p><p class="clause"><span class="nw">三、獲勝者可帶走獎金；</span><span class="nw">失敗者，後果自負。</span></p>
-    <div class="sig" id="sig"><span class="ph">✎ 輕觸此處以簽名</span><img id="sigImg" alt="你的簽名"></div>
+  <div id="waiver" class="screen"><div class="panel paper center wv">
+    <h3><span>BUCKSHOT ROULETTE</span><i>｜</i><span>參賽者契約</span></h3>
+    <div class="wvc">
+      <div class="cl"><b>第一條｜自願參與聲明</b><p>本人確認係出於完全自願參與本場輪盤對決，已充分理解遊戲規則及潛在風險，無論結果如何，均不得主張遭受欺騙、脅迫或不公平待遇。</p></div>
+      <div class="cl"><b>第二條｜生死風險承擔</b><p>本人知悉每次扣下扳機皆可能導致不可逆之後果，並同意自行承擔所有傷害、損失及生命終止之風險，莊家對任何意外概不負責。</p></div>
+      <div class="cl"><b>第三條｜道具與規則認定</b><p>本人同意所有彈藥配置、道具分配及回合判定，均以莊家公布之規則為最終依據，不得因運氣不佳、判斷失誤或遭對手算計而提出異議。</p></div>
+      <div class="cl"><b>第四條｜獎賞與代價約定</b><p>本人明白勝利所獲得之獎賞，須以承擔相應風險為前提，任何中途退出、違反規則或未完成之對局，莊家皆有權取消獎勵及收回既有利益。</p></div>
+      <div class="cl"><b>第五條｜最終責任豁免</b><p>本人一經簽署，即視為永久放棄對莊家及其相關人員之一切追究權利，包含但不限於身體損傷、精神創傷及生命損失，且本契約不得撤銷。</p></div>
+    </div>
+    <div class="wvs"><span class="wl">參賽者簽署：</span><div class="sig" id="sig"><span class="ph">✎ 輕觸此處以簽名</span><img id="sigImg" alt="你的簽名"></div></div>
+    <div class="wvt">契約生效時間：<span id="wvTime"></span></div>
+    <div class="wvq">「命運不保證公平，只有扣下扳機的那一刻，才會揭曉答案。」</div>
     <button class="btn" id="signBtn">簽署並入座</button>
     <div id="signWait"></div>
   </div></div>
@@ -2775,6 +2805,7 @@ function scr(id,after){
   xfade(()=>{
     for(const s of document.querySelectorAll('.screen'))s.classList.remove('on');
     if(id)$(id).classList.add('on');
+    if(id==='waiver'){const d=new Date(),z=n=>String(n).padStart(2,'0');$('wvTime').textContent=`${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日 ${z(d.getHours())} 時 ${z(d.getMinutes())} 分`;}
     stage.classList.toggle('scr',!!id);
     if(after)after();
   });
