@@ -1931,6 +1931,7 @@ function renderFrame(t,dt){
     cam.target=[tg[0],tg[1]-.12*k,tg[2]];
     const len=Math.hypot(cam.pos[0]-cam.target[0],cam.pos[1]-cam.target[1],cam.pos[2]-cam.target[2]);
     cam.fov=clamp(2*Math.atan((MPS?MPS.half:1.3)/(len*asp))*180/PI,60,92);}}
+  {const as2=R3.W/R3.H;if(as2>=1.25&&as2<1.77)cam.fov=Math.min(100,2*Math.atan(Math.tan(cam.fov*PI/360)*1.7778/as2)*180/PI);}
   A.pxs=lerp(A.pxs||0,A.px||0,1-Math.exp(-dt*5));A.pys=lerp(A.pys||0,A.py||0,1-Math.exp(-dt*5));
   if(!(A.menu||!S)){cam.pos[0]+=A.pxs*.14;cam.pos[1]-=A.pys*.05;cam.target[0]+=A.pxs*.1;cam.target[1]-=A.pys*.05;}
   // 查看生命：鏡頭平移＋拉近到電擊器螢幕正中央
@@ -2684,9 +2685,9 @@ function fit(){
   let w,h;
   if(DEV.portrait){
     if(W<=H){w=W;h=H;}else{h=H;w=Math.min(W,H*9/19.5);}
-  }else{w=Math.min(W,H*16/9);h=w*9/16;}
+  }else{w=W;h=H;}
   stage.style.width=w+'px';stage.style.height=h+'px';
-  stage.style.setProperty('--u',(DEV.portrait?w/50:w/100)+'px');stage.style.setProperty('--v',(h/100)+'px');
+  stage.style.setProperty('--u',(DEV.portrait?w/50:Math.min(w/100,h/56.25))+'px');stage.style.setProperty('--v',(DEV.portrait?h/100:Math.min(h/100,w/177.78))+'px');
   document.body.classList.toggle('touch',DEV.touch);
   document.body.classList.toggle('portrait',DEV.portrait);
   document.body.classList.toggle('pc',!DEV.touch);
