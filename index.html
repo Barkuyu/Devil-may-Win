@@ -2047,7 +2047,7 @@ function syncItems(t){
           const yaw=(((i*53+type.length*29+(side==='d'?17:0))%360)-180)*PI/180;n.baseYaw=yaw;n.q=Q.euler(0,yaw,0);T_ROOT.add(n);
           e=itemNodes[key]={type,node:n,side,i};
         }
-        const pk=A.pop[key];const n=e.node;
+        const pk=A.pop[key];const n=e.node;{const bp=slotWorld(side,i);n.pos[0]=bp[0];n.pos[2]=bp[2];}
         if(pk!=null&&t<pk){n.vis=false;}
         else{n.vis=true;let sc=1,lift=0;
           if(pk!=null){const k=clamp((t-pk)/.45,0,1);sc=k<1?(.2+k*.9+Math.sin(k*PI)*.35):1;lift=Math.sin(k*PI)*.12*(1-k);if(k>=1)delete A.pop[key];}
@@ -2063,10 +2063,19 @@ function syncItems(t){
           const D=1.25,th=Math.tan(cm.fov*PI/360),vh=D*th*2,asp=R3.W/R3.H;
           const itemH=Math.min(vh*.3,vh*asp*.42*1.0);
           const tp=[cp[0]+f[0]*D,cp[1]+f[1]*D+vh*.1,cp[2]+f[2]*D];
-          n.pos=[lerp(n.pos[0],tp[0],k),lerp(n.pos[1],tp[1],k),lerp(n.pos[2],tp[2],k)];
+          n.pos=[lerp(n.pos[0],tp[0],k),lerp(n.pos[1],tp[1],k),lerp(n.pos[2],tp[2],k)];e.lp=n.pos.slice();e.ls=null;
           const sc2=lerp(n.scl[0],itemH/.2,k);n.scl=[sc2,sc2,sc2];
-          n.q=Q.euler(.5*k,t*1.3,0);n.glow=0;e.rot=true;
-        }else if(e.rot){n.q=Q.euler(0,n.baseYaw,0);e.rot=false;}
+          n.q=Q.euler(.5*k,t*1.3,0);n.glow=0;e.rot=true;e.ls=n.scl[0];e.rt=null;
+        }else{
+          if(e.rot){e.rot=false;e.rt=t;}
+          if(e.rt!=null){
+            const k=clamp((t-e.rt)/.3,0,1),kk=1-Math.pow(1-k,3),bp=[n.pos[0],n.pos[1],n.pos[2]],bs=n.scl[0];
+            n.pos=[lerp(e.lp[0],bp[0],kk),lerp(e.lp[1],bp[1],kk),lerp(e.lp[2],bp[2],kk)];
+            const sc3=lerp(e.ls,bs,kk);n.scl=[sc3,sc3,sc3];
+            n.q=Q.slerp?Q.slerp(Q.euler(.5,t*1.3,0),Q.euler(0,n.baseYaw,0),kk):Q.euler(0,n.baseYaw,0);
+            if(k>=1)e.rt=null;
+          }else n.q=Q.euler(0,n.baseYaw,0);
+        }
       }
     }
   }
