@@ -365,6 +365,75 @@ body.portrait #waiver .wvs .sig{height:calc(var(--wf)*4.4);font-size:calc(var(--
 #waiver .wv h3 i{font-style:normal;margin:0 .25em}
 body.portrait #waiver .wv h3 span{display:block}body.portrait #waiver .wv h3 i{display:none}
 
+/* ===== 道具預覽（點一下→放大＋說明→使用／取消）===== */
+#itemPrev{position:absolute;inset:0;z-index:7;display:none;pointer-events:none;align-items:flex-end;justify-content:center;
+ background:radial-gradient(ellipse 60% 44% at 50% 38%,rgba(0,0,0,0) 0,rgba(0,0,0,.45) 60%,rgba(0,0,0,.82) 100%)}
+#itemPrev .ipc{pointer-events:auto;margin-bottom:calc(var(--u)*4.2);width:min(92%,calc(var(--u)*50));text-align:center;padding:calc(var(--u)*1.4) calc(var(--u)*2.2) calc(var(--u)*1.6);
+ background:linear-gradient(180deg,rgba(24,10,8,.92),rgba(8,3,3,.94));border:2px solid #b9ad9c;box-shadow:0 0 0 calc(var(--u)*.3) #0a0404,0 calc(var(--u)*1) calc(var(--u)*3) rgba(0,0,0,.7)}
+#ipName{font-size:calc(var(--u)*3);font-weight:900;color:#ffd25a;letter-spacing:.12em;text-shadow:0 0 calc(var(--u)*1) rgba(255,180,60,.35)}
+#ipDesc{font-size:calc(var(--u)*1.8);line-height:1.5;color:#eadfce;margin-top:calc(var(--u)*.6);text-wrap:balance}
+#ipWhy{font-size:calc(var(--u)*1.6);color:#ff6a55;margin-top:calc(var(--u)*.5);font-weight:800}
+.ipb{display:flex;gap:calc(var(--u)*2);justify-content:center;margin-top:calc(var(--u)*1.4)}
+.ipb .btn{flex:1;max-width:calc(var(--u)*20);font-size:calc(var(--u)*2.2)}
+#ipUse{border-color:#ffd25a;color:#ffd25a;background:rgba(60,26,6,.9)}
+#ipUse.dis,#ipUse:disabled{opacity:.35;border-color:#6a5f52;color:#9a8c7c;cursor:not-allowed}
+body.portrait #itemPrev .ipc{margin-bottom:calc(var(--u)*7);width:92%;padding:calc(var(--u)*2.2) calc(var(--u)*2.6) calc(var(--u)*2.6)}
+body.portrait #ipName{font-size:calc(var(--u)*5)}
+body.portrait #ipDesc{font-size:calc(var(--u)*3);margin-top:calc(var(--u)*1)}
+body.portrait #ipWhy{font-size:calc(var(--u)*2.7)}
+body.portrait .ipb{gap:calc(var(--u)*2);margin-top:calc(var(--u)*2.2)}
+body.portrait .ipb .btn{max-width:none;font-size:calc(var(--u)*3.6);padding:calc(var(--u)*1.7) 0}
+#stage.scr #itemPrev{visibility:hidden}
+
+/* ===== end screen redesign ===== */
+#end .endp{position:relative;background:radial-gradient(ellipse at 50% 0%,rgba(150,20,20,.38),rgba(10,4,4,.96) 70%);border:1px solid #c9a14a;box-shadow:0 0 0 calc(var(--u)*.5) #0b0505,0 0 0 calc(var(--u)*.6) rgba(201,161,74,.5),0 0 calc(var(--u)*8) rgba(180,30,30,.45);padding:calc(var(--u)*3.2) calc(var(--u)*4) calc(var(--u)*3);max-width:calc(var(--u)*56);animation:eIn .7s ease both}
+@keyframes eIn{from{opacity:0;transform:translateY(calc(var(--u)*2)) scale(.97)}to{opacity:1;transform:none}}
+.eCorner{position:absolute;width:calc(var(--u)*2.4);height:calc(var(--u)*2.4);border:2px solid #c9a14a}
+.eCorner.a{left:-1px;top:-1px;border-right:0;border-bottom:0}.eCorner.b{right:-1px;top:-1px;border-left:0;border-bottom:0}
+.eCorner.c{left:-1px;bottom:-1px;border-right:0;border-top:0}.eCorner.d{right:-1px;bottom:-1px;border-left:0;border-top:0}
+.eEmb{width:calc(var(--u)*8);height:calc(var(--u)*8);display:block;margin:0 auto calc(var(--u)*.8);animation:eGlow 3s ease-in-out infinite}
+@keyframes eGlow{0%,100%{filter:drop-shadow(0 0 6px rgba(201,161,74,.4))}50%{filter:drop-shadow(0 0 16px rgba(255,210,110,.9))}}
+.eKick{font-size:calc(var(--u)*1.5);letter-spacing:.5em;color:#c9a14a;margin-right:-.5em;opacity:.9}
+#end .endp h3{background:linear-gradient(180deg,#fff2c4,#e0b04a 55%,#9a6a1c);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;margin:calc(var(--u)*.6) 0;font-size:calc(var(--u)*4.4)}
+.eRule{display:flex;align-items:center;gap:calc(var(--u)*1);color:#c9a14a;margin:calc(var(--u)*1) auto;width:70%}
+.eRule i{flex:1;height:1px;background:linear-gradient(90deg,transparent,#c9a14a,transparent)}.eRule b{font-size:calc(var(--u)*1.2)}
+#end .endp .big:empty{display:none}
+.eSc{display:flex;flex-wrap:wrap;justify-content:center;gap:calc(var(--u)*1);margin:calc(var(--u)*2.4) 0 calc(var(--u)*1.4)}
+.eSc:empty{display:none}
+.eChip{min-width:calc(var(--u)*11);padding:calc(var(--u)*.9) calc(var(--u)*1.4);border:1px solid rgba(201,161,74,.45);background:rgba(0,0,0,.45);text-align:center;position:relative}
+.eChip.w{border-color:#ffcf6a;background:linear-gradient(180deg,rgba(201,161,74,.3),rgba(0,0,0,.5));box-shadow:0 0 calc(var(--u)*2) rgba(255,200,90,.35)}
+.eChip .n{font-size:calc(var(--u)*1.6);color:#e9dcc0;white-space:nowrap}
+.eChip .s{font-size:calc(var(--u)*3.4);font-weight:900;color:#ffcf6a;line-height:1.1}
+.eChip.w::before{content:"♛";position:absolute;left:50%;top:calc(var(--u)*-2);transform:translateX(-50%);font-size:calc(var(--u)*2.2);color:#ffcf6a;text-shadow:0 0 8px #c9a14a}
+#end .endp p{color:#d8c7a8;font-style:italic;margin:calc(var(--u)*1.2) 0 calc(var(--u)*2.2)}
+body.portrait #end .endp{padding:calc(var(--u)*5) calc(var(--u)*5) calc(var(--u)*4);max-width:calc(var(--u)*92)}
+body.portrait .eEmb{width:calc(var(--u)*14);height:calc(var(--u)*14)}
+body.portrait .eKick{font-size:calc(var(--u)*3)}
+body.portrait #end .endp h3{font-size:calc(var(--u)*7.4)}
+body.portrait .eChip{min-width:calc(var(--u)*22);padding:calc(var(--u)*1.6) calc(var(--u)*2)}
+body.portrait .eChip .n{font-size:calc(var(--u)*3.2)}body.portrait .eChip .s{font-size:calc(var(--u)*7)}
+body.portrait .eChip.w::before{font-size:calc(var(--u)*4);top:calc(var(--u)*-3.6)}
+body.portrait #end .endp .big{font-size:calc(var(--u)*8)}
+body.portrait .eSc{margin-top:calc(var(--u)*5)}
+#end .endp{overflow:visible;padding:calc(var(--u)*2.4) calc(var(--u)*4) calc(var(--u)*2.4)}
+.eEmb{width:calc(var(--u)*5.6);height:calc(var(--u)*5.6);margin-bottom:calc(var(--u)*.4)}
+#end .endp h3{font-size:calc(var(--u)*3.8)}
+#end .endp .big{font-size:calc(var(--u)*3.4);margin:calc(var(--u)*.4) 0}
+#end .endp p{margin:calc(var(--u)*.8) 0 calc(var(--u)*1.6)}
+body.portrait #end .endp{overflow:visible;width:90%;max-width:calc(var(--u)*84);padding:calc(var(--u)*5) calc(var(--u)*4)}
+body.portrait .eEmb{width:calc(var(--u)*13);height:calc(var(--u)*13)}
+body.portrait #end .endp h3{font-size:calc(var(--u)*7)}
+body.portrait #end .endp .big{font-size:calc(var(--u)*8)}
+body.portrait #end .endp h3{font-size:calc(var(--u)*5.6)}
+body.portrait .eSc{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*2);margin:calc(var(--u)*5) 0 calc(var(--u)*2)}
+body.portrait .eChip{min-width:0;padding:calc(var(--u)*1.2) calc(var(--u)*1)}
+body.portrait .eChip .s{font-size:calc(var(--u)*6)}
+body.portrait #end .endp{padding:calc(var(--u)*3) calc(var(--u)*4)}
+body.portrait .eEmb{width:calc(var(--u)*9);height:calc(var(--u)*9)}
+body.portrait .eChip .s{font-size:calc(var(--u)*5)}
+body.portrait .eChip .n{font-size:calc(var(--u)*2.8)}
+body.portrait .eSc{margin:calc(var(--u)*3.6) 0 calc(var(--u)*1)}
+
 </style>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -392,6 +461,8 @@ body.portrait #waiver .wv h3 span{display:block}body.portrait #waiver .wv h3 i{d
   <div id="hint" class="ov"></div>
   <div id="zoomHint" class="ov">輕觸畫面任意處返回</div>
   <div id="fps" class="ov" style="display:none;right:calc(var(--u)*1.4);top:calc(var(--u)*11);font-size:calc(var(--u)*1.6);color:#8f8;"></div>
+  <div id="itemPrev"><div class="ipc"><div id="ipName"></div><div id="ipDesc"></div><div id="ipWhy"></div>
+    <div class="ipb"><button class="btn" id="ipUse">使用</button><button class="btn" id="ipCancel">取消</button></div></div></div>
   <div id="aimbar"><div class="row"><button class="btn" id="bD">▲ 對莊家開火</button><button class="btn" id="bS">▼ 對自己開火</button></div><button class="btn sm" id="bX">放下霰彈槍（Esc）</button></div>
   <div id="seatTags"></div>
   <div id="aimMP"><div class="row" id="aimMProw"></div><button class="btn sm" id="aimMPx">取消</button></div>
@@ -508,8 +579,15 @@ body.portrait #waiver .wv h3 span{display:block}body.portrait #waiver .wv h3 i{d
     <div class="row2"><button class="btn" id="cCash"></button><button class="btn" id="cGo"></button></div>
   </div></div>
 
-  <div id="end" class="screen"><div class="panel center">
-    <h3 id="endT"></h3><div class="big" id="endB"></div><p id="endP"></p>
+  <div id="end" class="screen"><div class="panel center endp">
+    <div class="eCorner a"></div><div class="eCorner b"></div><div class="eCorner c"></div><div class="eCorner d"></div>
+    <svg class="eEmb" viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="#c9a14a" stroke-width="2.5"/><circle cx="60" cy="60" r="44" fill="none" stroke="#c9a14a" stroke-width="1" stroke-dasharray="3 4"/><path d="M60 22 L68 50 L98 50 L74 68 L83 96 L60 79 L37 96 L46 68 L22 50 L52 50Z" fill="#c9a14a" opacity=".92"/></svg>
+    <div class="eKick" id="endK"></div>
+    <h3 id="endT"></h3>
+    <div class="eRule"><i></i><b>◆</b><i></i></div>
+    <div class="big" id="endB"></div>
+    <div class="eSc" id="endS"></div>
+    <p id="endP"></p>
     <div class="row2"><button class="btn" id="endAgain">再來一局</button><button class="btn" id="endMenu">回主選單</button></div>
   </div></div>
   <div id="fade"></div>
@@ -1105,11 +1183,11 @@ const MANUAL=[
 <h4>生命值</h4><p>以右側電擊器的閃電格數表示。被實彈擊中失去 1 格，手鋸 2 格。香菸回復 1 格，但不能超過上限。</p>
 <h4>操作方式</h4><ul>
 <li>點擊桌上的<b>霰彈槍</b>拿起它，再選擇「對莊家開火」或「對自己開火」（也可直接點莊家，或點畫面下方；↑ / ↓ 鍵亦可）。</li>
-<li>點擊自己桌面（下半部）上的<b>道具</b>使用。滑鼠移到道具上會顯示說明。</li>
+<li>點一下自己桌面上的<b>道具</b>：道具會放大並顯示說明，下方再按<b>「使用」</b>確認或<b>「取消」</b>（電腦鍵盤：Enter 使用、Esc 取消）。</li>
 <li>使用腎上腺素後，再點擊對手桌上要偷的道具。</li>
 <li>Esc 放下槍／取消，P 開啟選單。</li>
-<li><b>電腦鍵鼠：</b>空白鍵／Enter 拿起槍；W／↑ 對莊家開火，S／↓ 對自己開火；數字鍵 1–4 使用遠排道具、5–8 使用近排道具（腎上腺素後再按 1–8 選莊家道具）。</li>
-<li><b>手機觸控：</b>直式畫面。點一下道具先看說明，再點一次才使用；拿起槍後用畫面下方的按鈕或直接點莊家／下方來開火。</li></ul>`},
+<li><b>電腦鍵鼠：</b>空白鍵／Enter 拿起槍；W／↑ 對莊家開火，S／↓ 對自己開火；數字鍵 1–4 查看遠排道具、5–8 查看近排道具（腎上腺素後再按 1–8 選莊家道具）。</li>
+<li><b>手機觸控：</b>直式畫面。點一下道具會放大並顯示說明，再按「使用」才會生效；拿起槍後用畫面下方的按鈕或直接點莊家／下方來開火。</li></ul>`},
 {k:'item',t:'11 種道具',h:`
 <p>本遊戲收錄單人模式會出現的 9 種道具；干擾器與遙控器為多人專用，列出供參考。</p>
 <table><tr><th>道具</th><th>效果</th><th>重點</th></tr>
@@ -1613,9 +1691,9 @@ function buildRoom(root){
   const add=(n)=>{root.add(n);return n;};
   add(nodeOf(G_('fl',()=>GEO.plane(9,9)),MT.floorM,0,0,0));
   const wall=(w,h,x,y,z,ry)=>{const n=nodeOf(G_('wall'+w+h,()=>GEO.bakeRotX(GEO.plane(w,h),PI/2)),MT.brickM,x,y,z,0,ry||0,0);n.mesh.mat=MT.brickM;return add(n);};
-  wall(9,3.6,0,1.8,-2.7,0);
-  wall(9,3.6,-3.4,1.8,0,PI/2);wall(9,3.6,3.4,1.8,0,-PI/2);
-  add(nodeOf(G_('ceil',()=>GEO.bakeRotX(GEO.plane(9,9),PI)),MT.black,0,3.6,0));
+  wall(9,7.2,0,3.6,-2.7,0);
+  wall(9,7.2,-3.4,3.6,0,PI/2);wall(9,7.2,3.4,3.6,0,-PI/2);
+  add(nodeOf(G_('ceil',()=>GEO.bakeRotX(GEO.plane(9,9),PI)),MT.black,0,7.2,0));
   // 管線與電線
   for(const [y,z] of [[3.2,-2.5],[2.95,-2.55]])add(nodeOf(G_('pipe',()=>GEO.bakeRotZ(GEO.cyl(.06,.06,8,12),PI/2)),MT.metalDark,0,y,z));
   for(let i=0;i<6;i++)add(nodeOf(G_('wire',()=>GEO.cyl(.01,.01,1.4,6)),MT.black,-2.6+i*1.05,2.9,-2.4,0,0,rr(-.3,.3)));
@@ -1627,11 +1705,12 @@ function buildRoom(root){
     lamp.add(nodeOf(G_('lamp_y',()=>GEO.box(.04,.4,.04)),MT.metalDark,0,.0,-.1));
   }
   // 桌燈（吊燈）
-  add(nodeOf(G_('hw',()=>GEO.cyl(.006,.006,1.2,6)),MT.black,0,3.0,.15));
-  add(nodeOf(G_('hs',()=>GEO.cyl(.06,.3,.22,28,false)),MT.metalDark,0,2.42,.15));
-  add(nodeOf(G_('hb',()=>GEO.sphere(.045,16,12)),MT.bulb,0,2.4,.15));
+  A.lampN=[];const addL=n=>{A.lampN.push(n);return add(n);};
+  addL(nodeOf(G_('hw',()=>GEO.cyl(.006,.006,1.2,6)),MT.black,0,3.0,.15));
+  addL(nodeOf(G_('hs',()=>GEO.cyl(.06,.3,.22,28,false)),MT.metalDark,0,2.42,.15));
+  addL(nodeOf(G_('hb',()=>GEO.sphere(.045,16,12)),MT.bulb,0,2.4,.15));
   // 光柱
-  add(nodeOf(G_('shaft',()=>GEO.cyl(.12,.95,1.65,32,false)),MT.shaft,0,1.6,.15));
+  addL(nodeOf(G_('shaft',()=>GEO.cyl(.12,.95,1.65,32,false)),MT.shaft,0,1.6,.15));
   for(const s of [-1,1]){const c=nodeOf(G_('shaft2',()=>GEO.cyl(.1,.55,2.4,24,false)),MT.shaftR,s*.95,1.9,-1.45);c.q=Q.mul(Q.euler(0,0,-s*.38),Q.euler(.0,0,0));add(c);}
   // 桌子
   const T=add(new Nd());
@@ -1946,6 +2025,7 @@ function renderFrame(t,dt){
   }
   // 閃光燈（命中時桌燈暫時變亮）
   SC.lights[0].int=2.3*(1+A.flash*.8)*(Math.sin(t*23)>.985?.55:1);
+  if(MPS){mpCamShift(cam);mpAttach(cam);}
   R3.render(SC);
   // DOM 疊層
   const fl=$('flash'),bk=$('blk'),hu=$('hurt');
@@ -1977,6 +2057,16 @@ function syncItems(t){
         const hi=A.hi&&A.hi.side===side&&A.hi.i===i&&(((t*6)|0)%2===0);
         n.glow=hov||hi?.55:0;n.glowCol=hi?[1,.4,.3]:[1,.85,.6];
         if(hov)n.pos[1]+=.012;
+        if(A.ipv&&A.ipv.key===key){
+          const k0=clamp((t-A.ipv.t0)/.38,0,1),k=1-Math.pow(1-k0,3),cm=SC.cam,cp=cm.pos,tg=cm.target;
+          let f=[tg[0]-cp[0],tg[1]-cp[1],tg[2]-cp[2]];const fl=Math.hypot(f[0],f[1],f[2])||1;f=[f[0]/fl,f[1]/fl,f[2]/fl];
+          const D=1.25,th=Math.tan(cm.fov*PI/360),vh=D*th*2,asp=R3.W/R3.H;
+          const itemH=Math.min(vh*.3,vh*asp*.42*1.0);
+          const tp=[cp[0]+f[0]*D,cp[1]+f[1]*D+vh*.1,cp[2]+f[2]*D];
+          n.pos=[lerp(n.pos[0],tp[0],k),lerp(n.pos[1],tp[1],k),lerp(n.pos[2],tp[2],k)];
+          const sc2=lerp(n.scl[0],itemH/.2,k);n.scl=[sc2,sc2,sc2];
+          n.q=Q.euler(.5*k,t*1.3,0);n.glow=0;e.rot=true;
+        }else if(e.rot){n.q=Q.euler(0,n.baseYaw,0);e.rot=false;}
       }
     }
   }
@@ -2409,37 +2499,54 @@ function mkHuman(k,M){
     head.add(nodeOf(G_('hm_gb',()=>GEO.box(.03,.006,.006)),MT.black,0,.03,.158));}
   return {root:r,body,head,eyes};
 }
-function mpMachPlace(M,port){
-  const n=M.n,two=n===2;
-  for(let k=0;k<n;k++){
-    const m=M.mach[k],o=M.out(k),l=M.lat(k),rel=((k-M.me)%n+n)%n;
-    let mx,mz;
-    if(port){
-      if(two){[mx,mz]=rel===0?[.85,1.4]:[-1.3,-1.3];}
-      else if(n===4){[mx,mz]=[[1.05,1.8],[-1.05,1.8],[-1.3,-1.9],[1.3,-1.9]][rel];}
-      else{[mx,mz]=[[1.05,1.75],[-1.5,-2.0],[1.5,-2.0]][rel];}
-    }else{
-      const A_=two?.55:M.IN+(n===3?.4:.5),B_=two?1.5:n===3?1.4:.95;
-      mx=o[0]*A_+l[0]*B_;mz=o[1]*A_+l[1]*B_;
-    }
-    m.root.at(mx,0,mz);m.root.q=Q.euler(0,Math.atan2(-mx,(port?3.2:(two?2.1:3.0))-mz),0);
-  }
-  M.port=port;
-  M.half=port?(two?2.0:n===3?2.2:2.0):(two?2.45:n===3?2.3:2.2);
-}
-function mkMachine(k,M,x,z,yaw){
-  const root=new Nd();root.at(x,0,z);root.q=Q.euler(0,yaw,0);
-  // 邊桌
-  root.add(nodeOf(G_('sd_top',()=>GEO.box(1.0,.05,.66)),MT.rim,0,.74,0));
-  for(const sx of [-1,1])for(const sz of [-1,1])root.add(nodeOf(G_('sd_leg',()=>GEO.cyl(.024,.024,.74,10)),MT.metalDark,sx*.45,.37,sz*.28));
-  root.add(nodeOf(G_('sd_br',()=>GEO.box(.9,.02,.5)),MT.metalDark,0,.2,0));
-  const tilt=new Nd();tilt.at(0,.93,0);tilt.q=Q.euler(-.55,0,0);root.add(tilt);
-  tilt.add(nodeOf(G_('mc_b',()=>GEO.box(.76,.3,.34)),MT.metalDark,0,0,0));
+/* 生命值機器：貼在鏡頭前（螢幕固定位置），永遠不會被人物、音響或桌面擋住，也不會壓到遊戲資訊 */
+function mkMachine(k,M){
+  const root=new Nd();
+  const body=MAT({col:[.13,.13,.15],spec:.35,shin:30,cast:false}),steel=MAT({col:[.62,.64,.68],spec:.9,shin:70,cast:false});
+  const tilt=new Nd();tilt.q=Q.euler(-.1,0,0);root.add(tilt);
+  tilt.add(nodeOf(G_('mc_b',()=>GEO.box(.76,.3,.07)),body,0,0,0));
   const cv=cv2(512,256),tex=R3.tex(cv);
   const mat=MAT({col:[1,1,1],tex,emis:[.35,.35,.35],unlit:true,cast:false});
-  const scr=nodeOf(G_('mc_s',()=>GEO.plane(.68,.25)),mat,0,0,.172);scr.q=Q.euler(PI/2,0,0);tilt.add(scr);
-  for(let i=0;i<3;i++){tilt.add(nodeOf(G_('mc_c',()=>GEO.cyl(.035,.04,.14,16)),MT.steel,-.24+i*.24,.22,-.06));tilt.add(nodeOf(G_('mc_ct',()=>GEO.cyl(.02,.02,.03,12)),MT.dsteel,-.24+i*.24,.3,-.06));}
+  const scr=nodeOf(G_('mc_s',()=>GEO.plane(.68,.25)),mat,0,0,.038);scr.q=Q.euler(PI/2,0,0);tilt.add(scr);
+  for(let i=0;i<3;i++){tilt.add(nodeOf(G_('mc_c',()=>GEO.cyl(.035,.04,.1,16)),steel,-.24+i*.24,.2,-.02));tilt.add(nodeOf(G_('mc_ct',()=>GEO.cyl(.02,.02,.03,12)),body,-.24+i*.24,.26,-.02));}
   return {root,cv,tex,key:'',scr,tilt};
+}
+/* 螢幕位置：回傳每個座位的 {x,y(NDC), w(寬度占螢幕比例)} */
+function mpMachLayout(M,asp){
+  const n=M.n,me=M.me,rel=k=>((k-me)%n+n)%n,at={};
+  const port=asp<1.25,res=[];
+  if(port){
+    const w=.45,hN=w*.59*asp,row=r=>.7-hN-r*(2*hN+.03);
+    const slotOf=n===2?{1:[-.5,0],0:[.5,0]}:n===3?{1:[-.5,0],2:[.5,0],0:[0,1]}:{1:[-.5,0],2:[.5,0],3:[-.5,1],0:[.5,1]};
+    for(let k=0;k<n;k++){const p=slotOf[rel(k)];res[k]={x:p[0],y:row(p[1]),w};}
+    M.shift=n===2?.1:.4;M.compact=false;
+  }else{
+    const w=asp>1.7?.13:.155,hN=w*.59*asp,x=1-w-.015,top=.58,y1=top-hN,y2=y1-2*hN-.04;
+    const put=(k,sx,y)=>res[k]={x:sx*x,y,w};
+    if(n===2){for(let k=0;k<2;k++)rel(k)===0?put(k,1,y2):put(k,-1,y1);}
+    else if(n===3){for(let k=0;k<3;k++){const r=rel(k);r===0?put(k,1,y2):put(k,r===1?-1:1,y1);}}
+    else{for(let k=0;k<4;k++){const r=rel(k);r===0?put(k,1,y2):r===1?put(k,-1,y2):r===2?put(k,-1,y1):put(k,1,y1);}}
+    M.shift=0;M.compact=false;
+  }
+  return res;
+}
+/* 整體畫面下移，讓出上方給機器（直式） */
+function mpCamShift(cam){
+  const M=MPS;if(!M||!M.shift)return;
+  const cp=cam.pos,tg=cam.target,f=nrm([tg[0]-cp[0],tg[1]-cp[1],tg[2]-cp[2]]),r=nrm(crs(f,[0,1,0])),u=crs(r,f);
+  const d=Math.hypot(tg[0]-cp[0],tg[1]-cp[1],tg[2]-cp[2])*Math.tan(cam.fov*PI/360)*M.shift;
+  cam.pos=[cp[0]+u[0]*d,cp[1]+u[1]*d,cp[2]+u[2]*d];cam.target=[tg[0]+u[0]*d,tg[1]+u[1]*d,tg[2]+u[2]*d];
+}
+function mpAttach(cam){
+  const M=MPS;if(!M)return;
+  const asp=R3.W/R3.H,cp=cam.pos,tg=cam.target,f=nrm([tg[0]-cp[0],tg[1]-cp[1],tg[2]-cp[2]]),r=nrm(crs(f,[0,1,0])),u=crs(r,f);
+  const D=1.0,hh=D*Math.tan(cam.fov*PI/360),hw=hh*asp,L=mpMachLayout(M,asp);
+  const q=Q.look([-f[0],-f[1],-f[2]]);
+  for(let k=0;k<M.n;k++){
+    const m=M.mach[k],p=L[k],sc=p.w*2*hw/.76;
+    m.root.pos=[cp[0]+f[0]*D+r[0]*p.x*hw+u[0]*p.y*hh,cp[1]+f[1]*D+r[1]*p.x*hw+u[1]*p.y*hh,cp[2]+f[2]*D+r[2]*p.x*hw+u[2]*p.y*hh];
+    m.root.q=q;m.root.scl=[sc,sc,sc];
+  }
 }
 function mpSceneOn(n,me){
   mpSceneOff(true);
@@ -2450,7 +2557,7 @@ function mpSceneOn(n,me){
   M.HD=two?1.0:M.IN+.28;
   M.DR=two?[.30,.58]:[M.IN-.6,M.IN-.3];
   M.CX=two?COLX:n===3?[-.5,-.17,.17,.5]:[-.54,-.18,.18,.54];
-  M.half=two?2.45:(n===3?2.3:2.2);
+  M.half=two?1.32:(n===3?2.0:1.5);
   M.phi=k=>{const rel=((k-me)%n+n)%n;return -2*PI*rel/n;};
   M.out=k=>{const f=M.phi(k);return [Math.sin(f),Math.cos(f)];};
   M.lat=k=>{const f=M.phi(k);return [Math.cos(f),-Math.sin(f)];};
@@ -2487,6 +2594,7 @@ function mpSceneOn(n,me){
    const nd=nodeOf(G_('mp_board',()=>GEO.bakeRotX(GEO.plane(2.6,.76),PI/2)),bm,-1.95,1.85,-2.66);add(nd);
    M.board={cv,tex,key:'',nodes:[nd]};
    const fr=nodeOf(G_('mp_bfr',()=>GEO.box(2.74,.9,.04)),MT.metalDark,-1.95,1.85,-2.69);add(fr);M.board.nodes.push(fr);}
+  for(const l of A.lampN)l.vis=false;
   A.dealer.vis=false;for(const a of A.arms)a.vis=false;for(const h of A.hands)h.vis=false;A.defib.vis=false;
   // 光源改打在桌面與玩家身上
   if(typeof SC!=='undefined'&&SC&&SC.lights){const L=SC.lights[1];M.l1={pos:L.pos.slice(),dir:L.dir.slice(),cone:L.cone.slice(),int:L.int};
@@ -2497,11 +2605,10 @@ function mpSceneOn(n,me){
     const col=MPG_COL[k];
     M.mats[k]=MAT({col:[col[0]*.9,col[1]*.9,col[2]*.9],emis:[col[0]*1.4,col[1]*1.4,col[2]*1.4],unlit:true,cast:false});
     const o=M.out(k);
-    const m=mkMachine(k,M,0,0,0);add(m.root);M.mach[k]=m;
+    const m=mkMachine(k,M);add(m.root);M.mach[k]=m;
     if(k===me)continue;
     const f=mkHuman(k,M);f.root.at(o[0]*M.HD,0,o[1]*M.HD);f.root.euler(0,M.phi(k)+PI,0);add(f.root);M.figs[k]=f;
   }
-  mpMachPlace(M,false);
   A.mpHit=Array(n).fill(0);A.mpDead=Array(n).fill(0);A.mpHitN=Array(n).fill(0);
   M.cam=n===2?{pos:[0,1.8,2.15],tg:[0,.92,-.3],fov:68}:n===3?{pos:[0,2.6,3.1],tg:[0,.85,-.15],fov:58}:{pos:[0,2.7,3.2],tg:[0,.85,-.1],fov:58};
   document.body.classList.add('mp');
@@ -2511,7 +2618,7 @@ function mpSceneOff(keep){
   if(MPS){for(const n of MPS.nodes)T_ROOT.remove(n);
     if(MPS.l1&&typeof SC!=='undefined'&&SC&&SC.lights){const L=SC.lights[1];L.pos=MPS.l1.pos;L.dir=MPS.l1.dir;L.cone=MPS.l1.cone;L.int=MPS.l1.int;}}
   MPS=null;
-  if(A.table)A.table.vis=true;
+  if(A.table)A.table.vis=true;if(A.lampN)for(const l of A.lampN)l.vis=true;
   if(A.dealer)A.dealer.vis=true;if(A.arms)for(const a of A.arms)a.vis=true;if(A.hands)for(const h of A.hands)h.vis=true;if(A.defib)A.defib.vis=true;
   document.body.classList.remove('mp');
   const t=document.getElementById('seatTags');if(t)t.innerHTML='';
@@ -2523,17 +2630,17 @@ function drawMach(k,t){
   const M=MPS,V=MV;if(!M||!V)return;const m=M.mach[k];if(!m)return;
   const flick=Math.sin(t*18)>0,alive=V.alive[k],sud=V.sudden[k]&&alive;
   const turn=V.turn===k&&alive&&!V.over;
-  const key=[V.hp[k],V.maxHp,V.sudden[k],alive,V.cuffed[k],turn,V.wins[k],V.pl[k].name,V.over,sud&&flick,turn&&(((t*2)|0)%2)].join();
+  const cf=M.compact?1.3:1;const key=[M.compact,V.hp[k],V.maxHp,V.sudden[k],alive,V.cuffed[k],turn,V.wins[k],V.pl[k].name,V.over,sud&&flick,turn&&(((t*2)|0)%2)].join();
   if(m.key===key)return;m.key=key;
   const x=m.cv.getContext('2d'),col=MP_COL[k];
   x.clearRect(0,0,512,256);x.fillStyle='#050403';x.fillRect(0,0,512,256);
   x.textBaseline='middle';x.textAlign='left';
   x.strokeStyle=alive?col:'#555';x.lineWidth=turn?(((t*2)|0)%2?16:9):5;x.strokeRect(x.lineWidth/2,x.lineWidth/2,512-x.lineWidth,256-x.lineWidth);
   x.fillStyle=alive?col:'#666';x.beginPath();x.arc(38,44,17,0,6.2832);x.fill();
-  x.font='bold 42px sans-serif';x.fillStyle=alive?'#f1e6d6':'#777';
-  let nm=V.pl[k].name+(k===M.me?'（你）':'');while(x.measureText(nm).width>(turn?250:400)&&nm.length>1)nm=nm.slice(0,-1);
+  x.font=`bold ${42*cf|0}px sans-serif`;x.fillStyle=alive?'#f1e6d6':'#777';
+  let nm=V.pl[k].name+(k===M.me?'（你）':'');while(x.measureText(nm).width>(turn?(M.compact?330:250):(M.compact?420:400))&&nm.length>1)nm=nm.slice(0,-1);
   x.fillText(nm,68,46);
-  if(turn){x.fillStyle=col;x.font='bold 36px sans-serif';x.textAlign='right';x.fillText('回合 ▶',488,46);x.textAlign='left';}
+  if(turn){x.fillStyle=col;x.font=`bold ${36*cf|0}px sans-serif`;x.textAlign='right';x.fillText('▶',488,46);x.textAlign='left';}
   x.strokeStyle='#d8ccb8';x.lineWidth=3;x.beginPath();x.moveTo(14,80);x.lineTo(498,80);x.stroke();
   const bolt=(bx,by,c)=>{x.fillStyle=c;x.beginPath();x.moveTo(bx+22,by);x.lineTo(bx-14,by+44);x.lineTo(bx+2,by+44);x.lineTo(bx-10,by+86);x.lineTo(bx+30,by+36);x.lineTo(bx+12,by+36);x.closePath();x.fill();};
   for(let i=0;i<V.maxHp;i++){
@@ -2541,7 +2648,7 @@ function drawMach(k,t){
     if(sud)c=(i===0&&flick)?'#ff5a44':'#401812';
     if(!alive)c='#2a2a2a';
     bolt(44+i*62,90,c);}
-  x.font='bold 64px sans-serif';x.fillStyle=alive?(sud?'#ff6a55':'#d8ccb8'):'#666';x.fillText(Math.max(0,V.hp[k])+' / '+V.maxHp,300,132);
+  x.font=`bold ${64*cf|0}px sans-serif`;x.fillStyle=alive?(sud?'#ff6a55':'#d8ccb8'):'#666';x.fillText(Math.max(0,V.hp[k])+'/'+V.maxHp,M.compact?292:300,132);
   x.font='bold 46px sans-serif';
   for(let i=0;i<MP_WINS;i++){x.fillStyle=i<V.wins[k]?'#ffd25a':'#3a322c';x.fillText('★',24+i*52,216);}
   const chips=[];if(!alive)chips.push(['淘汰','#7d1510']);else{if(sud)chips.push(['瀕死',flick?'#c4281c':'#7a1a12']);if(V.cuffed[k])chips.push(['被銬','#8a6a00']);}
@@ -2577,13 +2684,8 @@ function drawBoard(){
 /* ---------- 每幀 ---------- */
 function mpFrame(t,dt){
   const M=MPS;if(!M)return;
-  const asp=R3.W/R3.H,port=asp<1.25,ms=port?1.4:1.25;M.ms=ms;if(M.port!==port)mpMachPlace(M,port);for(const nd of M.board.nodes)nd.vis=asp>=1.25;
+  const asp=R3.W/R3.H;for(const nd of M.board.nodes)nd.vis=asp>=1.25;
   for(let k=0;k<M.n;k++){
-    const m=M.mach[k];if(m){
-      const cp=(SC&&SC.cam&&SC.cam.pos)||[0,2.6,3],mp=m.root.pos,hd=Math.hypot(cp[0]-mp[0],cp[2]-mp[2]);
-      m.root.q=Q.euler(0,M.port?0:Math.atan2(cp[0]-mp[0],cp[2]-mp[2]),0);
-      m.tilt.q=Q.euler(-clamp(Math.atan2(cp[1]-1,hd),.25,1.4),0,0);
-      const tl=m.tilt;const far=m.root.pos[2]<-.3?1.3:(port?(m.root.pos[2]>.3?.78:1):(m.root.pos[2]>.9?.85:1));tl.scl=[ms*far,ms*far,ms*far];}
     drawMach(k,t);
     A.mpHit[k]*=Math.pow(.02,dt);
     const dd=A.mpDead[k],f=M.figs[k];if(!f)continue;
@@ -2600,7 +2702,7 @@ function mpCam(t,cam){
   const M=MPS;let c=M.cam;
   const asp=R3.W/R3.H;
   if(asp<1.25&&M.n>2){   // 直式：高處俯視，讓整張桌面與所有機器入鏡
-    const P=M.n===3?[0,4.6,2.7]:[0,4.6,2.5],T=[0,.8,M.n===3?-.1:0],half=M.n===3?2.45:2.05;
+    const P=M.n===3?[0,4.6,2.7]:[0,4.6,2.5],T=[0,.8,M.n===3?-.1:0],half=M.half;
     const d=Math.hypot(P[0]-T[0],P[1]-T[1],P[2]-T[2]);
     c={pos:P,tg:T,fov:clamp(2*Math.atan(half/(d*asp))*180/PI,55,95)};
   }
@@ -2629,7 +2731,7 @@ function mpPick(nx,ny,aim){
     const c=e.node.worldPos();c[1]+=.04;const t=raySphere(r,c,.125);
     if(t>0&&t<bt){bt=t;best={k:'slot',side:e.side,i:e.i};}}
   for(let k=0;k<M.n;k++){
-    const m=M.mach[k],mp=m.root.pos,ms=M.ms||1;
+    const m=M.mach[k],mp=m.root.pos,ms=m.root.scl[0];
     let t=raySphere(r,[mp[0],mp[1]+.28*ms,mp[2]],.42*ms);
     if(t>0&&t<bt){bt=t;best=k===M.me?{k:'self'}:{k:'seat',seat:k};}
     if(k===M.me)continue;
@@ -2868,21 +2970,47 @@ function handleClick(h,touch){
   if(h.k==='dealer'&&G.aim){submit({t:'shoot',target:'d'});return;}
   if(h.k==='self'&&G.aim){submit({t:'shoot',target:'p'});return;}
   if(h.k==='slot'&&h.side==='p'){
-    const it=S.inv.p[h.i];
-    if(touch){const key='p'+h.i;if(G.lastTapKey!==key){G.lastTapKey=key;return;}}
-    if(it==='adrenaline'){
-      if(!stealable(S,'p').length){say('莊家沒有可以偷的道具',1600);sfx('bad');return;}
-      if(G.aim)setAim(false);
-      G.adr=h.i;A.hi={side:'p',i:h.i};say(DEV.touch?'選擇要偷的莊家道具':'選擇要偷的莊家道具（Esc 取消，或按 1–8）');setHint('點擊莊家桌上的道具');sfx('click');return;
-    }
-    if(!canUse(S,'p',it)){say(it==='saw'?'槍管已經鋸短了':'莊家已經被銬住了',1500);sfx('bad');return;}
+    const it=S.inv.p[h.i];if(!it)return;
     if(G.aim)setAim(false);
-    submit({t:'item',slot:h.i});
+    let ok=true,why='';
+    if(it==='adrenaline'){if(!stealable(S,'p').length){ok=false;why='莊家桌上沒有可以偷的道具';}}
+    else if(!canUse(S,'p',it)){ok=false;why=it==='saw'?'槍管已經鋸短了':'莊家已經被銬住了';}
+    openItemPrev('p',h.i,it,ok,why,()=>useSlotSingle(h.i));
   }
 }
+function useSlotSingle(i){
+  const it=S.inv.p[i];if(!it||!G.canInput)return;
+  if(it==='adrenaline'){
+    G.adr=i;A.hi={side:'p',i};say(DEV.touch?'選擇要偷的莊家道具':'選擇要偷的莊家道具（Esc 取消，或按 1–8）');setHint('點擊莊家桌上的道具');sfx('click');return;
+  }
+  submit({t:'item',slot:i});
+}
+/* ---------- 道具：點一下 → 放大＋說明 → 使用／取消 ---------- */
+function openItemPrev(side,i,it,ok,why,useFn){
+  if(G.prev)return;
+  const d=ITEM_DEFS[it];
+  G.prev={use:useFn,ok};
+  A.ipv={key:''+side+i,t0:NOW()};
+  $('ipName').textContent=d.n;$('ipDesc').textContent=d.d;
+  const w=$('ipWhy');w.textContent=ok?'':'⚠ '+why;w.style.display=ok?'none':'';
+  const u=$('ipUse');u.disabled=!ok;u.classList.toggle('dis',!ok);
+  $('itemPrev').style.display='flex';sfx('zoomIn');
+  hideTipNow();
+}
+function hideTipNow(){const t=$('tip');if(t)t.style.display='none';}
+function closeItemPrev(silent){
+  if(!G.prev)return;G.prev=null;A.ipv=null;$('itemPrev').style.display='none';if(!silent)sfx('back');
+}
+function confirmItemPrev(){
+  if(!G.prev||!G.prev.ok)return;
+  const f=G.prev.use;closeItemPrev(true);f();
+}
+$('ipUse').onclick=confirmItemPrev;
+$('ipCancel').onclick=()=>closeItemPrev();
 cv.addEventListener('pointerdown',e=>{
   auInit();if(AU.ctx&&AU.ctx.state==='suspended')AU.ctx.resume();
   if(G.state!=='game'||G.paused)return;
+  if(G.prev)return;
   if(A.zoomT){closeHpZoom();return;}
   const m=mpos(e);const h=hitTest(m.x,m.y);const touch=e.pointerType==='touch';
   if(h&&h.k==='defib'){openHpZoom();return;}
@@ -2896,10 +3024,10 @@ function setAim(v){
   setGun(v?'pHeld':'table');
   setHint(v?hintAim():hintMain());
 }
-function hintMain(){if(MPS)return DEV.touch?'點槍開火・連點道具使用・點頭像看對手':'點槍（空白鍵）開火・點道具／數字鍵 1–8 使用・P 選單';return DEV.touch?'點槍開火・連點道具使用・點電擊器看生命':'點槍（空白鍵）開火・點道具／數字鍵 1–8 使用・點電擊器（H）看生命・P 選單';}
+function hintMain(){if(MPS)return DEV.touch?'點槍開火・點道具確認使用・點頭像看對手':'點槍（空白鍵）開火・點道具／數字鍵 1–8 查看並使用・P 選單';return DEV.touch?'點槍開火・點道具確認使用・點電擊器看生命':'點槍（空白鍵）開火・點道具／數字鍵 1–8 查看並使用・點電擊器（H）看生命・P 選單';}
 function hintAim(){return DEV.touch?'點莊家＝對他開火　點下方＝對自己開火':'點莊家／W↑＝對他開火　點下方／S↓＝對自己開火　Esc 放下';}
 function submit(act){
-  if(!G.canInput)return;
+  if(!G.canInput)return;closeItemPrev(true);
   G.canInput=false;G.aim=false;$('aimbar').style.display='none';setHint('');hush();$('tip').style.display='none';
   const r=G.resolve;G.resolve=null;if(r)r(act);
 }
@@ -2909,6 +3037,7 @@ $('bX').onclick=()=>setAim(false);
 $('bD').onmouseenter=()=>setGun('pAimD');$('bS').onmouseenter=()=>setGun('pAimS');
 $('bD').onmouseleave=()=>{if(G.aim)setGun('pHeld');};$('bS').onmouseleave=()=>{if(G.aim)setGun('pHeld');};
 addEventListener('keydown',e=>{
+  if(G.prev){if(e.key==='Escape')closeItemPrev();else if(e.key==='Enter'||e.key===' ')confirmItemPrev();e.preventDefault();return;}
   if(MPS&&G.state==='game'&&!$('manual').classList.contains('on')&&!$('opt').classList.contains('on')){
     if(e.key==='Escape'){if(G.adr!=null||G.cuffPick!=null)mpCancelPick();else if(G.aim)mpSetAim(false);else togglePause(!$('pause').classList.contains('on'));return;}
     if(e.key==='p'||e.key==='P'){togglePause(!$('pause').classList.contains('on'));return;}
@@ -3152,7 +3281,7 @@ function choose(bank){
 function endScreen(title,kind,bank){
   G.state='ended';
   $('pauseBtn').style.display='none';hush();$('hud').innerHTML='';$('prob').style.display='none';setHint('');
-  $('endT').textContent=title;
+  $('endT').textContent=title;$('endS').innerHTML='';$('endK').textContent=(kind==='cash'||kind==='storyWin')?'SURVIVED':'GAME OVER';
   if(kind==='cash'){$('endB').textContent=money(bank);$('endP').textContent='你拖著顫抖的雙腿，帶著獎金離開了。這次，活下來了。';}
   else if(kind==='storyWin'){$('endB').textContent='生還';$('endP').textContent='莊家倒下了。你帶著獎金，走出了這間地下夜店。';}
   else{$('endB').textContent=kind==='lose'&&S.mode==='don'?money(0):'';$('endP').textContent=S.mode==='don'?'貪心的代價……獎金全數歸零。':'你沒能離開這張桌子。';}
@@ -3270,7 +3399,7 @@ function frame(ts){
   A.menu=(G.state==='menu');
   try{renderFrame(ts/1000,dt);if(A.gore){A.gore=0;showGore();}}catch(e){if(!frame.err){frame.err=1;console.error(e);}}
   if(fc%6===0){updateHud();const f=$('fps');if(OPT.fps){f.style.display='block';f.textContent=(A.fps||0)+' FPS · '+(R3?R3.W+'×'+R3.H:'');}else f.style.display='none';}
-  if(OPT.grain){const g=$('grain');g.style.backgroundPosition=((Math.random()*128)|0)+'px '+((Math.random()*128)|0)+'px';}
+  if(OPT.grain&&fc%3===0){const g=$('grain');g.style.backgroundPosition=((Math.random()*128)|0)+'px '+((Math.random()*128)|0)+'px';}
 }
 (function(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');const d=x.createImageData(128,128);for(let i=0;i<d.data.length;i+=4){const v=Math.random()*255;d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=255;}x.putImageData(d,0,0);document.getElementById('grain').style.backgroundImage='url('+c.toDataURL()+')';})();
 function showGrain(){$('grain').style.display=OPT.grain?'block':'none';}
@@ -3283,7 +3412,7 @@ fit();
 
 /* ---------- 全域按鍵音效（事件委派） ---------- */
 (function(){
-  const MAP={bX:'unaim',manClose:'back',optClose:'back',pMan:'open',pOpt:'open',pQuit:'back',endMenu:'back',cCash:'coin',cGo:'risk',endAgain:'start',oFull:'open',signBtn:null,bD:null,bS:null,pResume:null,pauseBtn:null,padOk:null,padClear:null,padCancel:null,sig:null};
+  const MAP={bX:'unaim',manClose:'back',optClose:'back',pMan:'open',pOpt:'open',pQuit:'back',endMenu:'back',cCash:'coin',cGo:'risk',endAgain:'start',oFull:'open',signBtn:null,ipUse:null,ipCancel:null,bD:null,bS:null,pResume:null,pauseBtn:null,padOk:null,padClear:null,padCancel:null,sig:null};
   addEventListener('pointerdown',e=>{
     const b=e.target.closest&&e.target.closest('button,.mi,.btn,#sig');if(!b||b.disabled)return;
     auInit();auWake();
@@ -3754,7 +3883,8 @@ function mpEndScreen(w,V){
   $('pauseBtn').style.display='none';hush();$('hud').innerHTML='';$('prob').style.display='none';setHint('');
   const mine=w===me;
   $('endT').textContent=mine?'你是最後的優勝者':`${nmOf(w)} 是最後的優勝者`;
-  $('endB').textContent=V.pl.map((p,i)=>`${i===me?'你':p.name} ${V.wins[i]}`).join('　:　');
+  $('endB').textContent='';$('endK').textContent=mine?'VICTORY':'GAME OVER';
+  $('endS').innerHTML=V.pl.map((p,i)=>`<div class="eChip${i===w?' w':''}"><div class="n">${i===me?'你':p.name}</div><div class="s">${V.wins[i]}</div></div>`).join('');
   $('endP').textContent=mine?'你活了下來，而且贏走了這張桌子。':'這張桌子只容得下一位贏家。';
   setTimeout(()=>sfx(mine?'win':'lose'),300);
   const again=$('endAgain');
@@ -3795,7 +3925,7 @@ function mpShowBar(mode){
   stage.style.setProperty('--barh',$('aimMP').offsetHeight+'px');document.body.classList.add('bar');
 }
 function submitMP(act){
-  if(!G.canInput)return;
+  if(!G.canInput)return;closeItemPrev(true);
   G.canInput=false;G.aim=false;G.adr=null;G.cuffPick=null;mpHideBar();setHint('');hush();$('tip').style.display='none';A.hi=null;
   const r=G.resolve;G.resolve=null;if(r)r(act);
 }
@@ -3834,21 +3964,24 @@ function mpHandleClick(h,touch){
   if(h.k==='self'&&G.aim){submitMP({t:'shoot',target:me});return;}
   if(h.k==='slot'&&h.side===me){
     const it=V.inv[me][h.i];if(!it)return;
-    if(touch){const key='p'+h.i;if(G.lastTapKey!==key){G.lastTapKey=key;return;}}
-    if(it==='adrenaline'){
-      if(!mpStealable(V,me).length){say('沒有可以偷的道具',1600);sfx('bad');return;}
-      if(G.aim)mpSetAim(false);
-      G.adr=h.i;A.hi={side:me,i:h.i};say(DEV.touch?'選擇要偷的道具（點對手桌上的道具）':'選擇要偷的道具（點對手桌上的道具，Esc 取消）');setHint('點擊對手桌上的道具');sfx('click');return;
-    }
-    if(!mpCanUse(V,me,it)){say(it==='saw'?'槍管已經鋸短了':'沒有可以銬的對象',1500);sfx('bad');return;}
     if(G.aim)mpSetAim(false);
-    if(it==='cuffs'){
-      const ct=mpCuffTargets(V,me);
-      if(ct.length===1){submitMP({t:'item',slot:h.i,target:ct[0]});return;}
-      G.cuffPick=h.i;A.hi={side:me,i:h.i};mpShowBar('cuff');say('選擇要銬住的玩家');setHint('點擊玩家頭像或下方按鈕');return;
-    }
-    submitMP({t:'item',slot:h.i});
+    let ok=true,why='';
+    if(it==='adrenaline'){if(!mpStealable(V,me).length){ok=false;why='對手桌上沒有可以偷的道具';}}
+    else if(!mpCanUse(V,me,it)){ok=false;why=it==='saw'?'槍管已經鋸短了':'沒有可以銬的對象';}
+    openItemPrev(me,h.i,it,ok,why,()=>mpUseSlot(h.i));
   }
+}
+function mpUseSlot(i){
+  const V=MV,me=MPS.me,it=V.inv[me][i];if(!it||!G.canInput)return;
+  if(it==='adrenaline'){
+    G.adr=i;A.hi={side:me,i};say(DEV.touch?'選擇要偷的道具（點對手桌上的道具）':'選擇要偷的道具（點對手桌上的道具，Esc 取消）');setHint('點擊對手桌上的道具');sfx('click');return;
+  }
+  if(it==='cuffs'){
+    const ct=mpCuffTargets(V,me);
+    if(ct.length===1){submitMP({t:'item',slot:i,target:ct[0]});return;}
+    G.cuffPick=i;A.hi={side:me,i};mpShowBar('cuff');say('選擇要銬住的玩家');setHint('點擊玩家頭像或下方按鈕');return;
+  }
+  submitMP({t:'item',slot:i});
 }
 function mpKey(e){
   if(!G.canInput||G.paused||!MV)return false;
