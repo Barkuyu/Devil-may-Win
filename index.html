@@ -961,16 +961,19 @@ function raySphere(r,c,rad){const oc=sub(r.o,c);const b=dot(oc,r.d),cc=dot(oc,oc
 /* ===================== ENGINE（純規則，無畫面） ===================== */
 const ITEM_DEFS = {
   magnifier:{n:'放大鏡',d:'查看槍膛內現在這一發是實彈還是空包彈。'},
-  beer:{n:'啤酒',d:'退出槍膛內的這一發子彈，並揭露它的種類。'},
+  beer:{n:'退彈器',d:'退出槍膛內的這一發子彈，並揭露它的種類。'},
   saw:{n:'手鋸',d:'鋸短槍管：下一發若是實彈，傷害變成 2 點。'},
   cuffs:{n:'手銬',d:'銬住對手，使其跳過下一次行動。'},
-  cigarette:{n:'香菸',d:'回復 1 點生命（不能超過上限）。'},
-  phone:{n:'拋棄式手機',d:'告知彈匣中某個隨機位置的子彈類型。'},
-  inverter:{n:'逆轉器',d:'把槍膛內這一發反轉：實彈變空包彈，空包彈變實彈。'},
-  adrenaline:{n:'腎上腺素',d:'偷走對手一件道具並立即使用（不能偷腎上腺素）。'},
-  medicine:{n:'過期藥物',d:'50% 回復 2 點生命，50% 失去 1 點生命。'}
+  cigarette:{n:'橘子汽水',d:'回復 1 點生命（不能超過上限）。'},
+  phone:{n:'聽診器',d:'告知彈匣中某個隨機位置的子彈類型。'},
+  inverter:{n:'U形磁鐵',d:'把槍膛內這一發反轉：實彈變空包彈，空包彈變實彈。'},
+  adrenaline:{n:'腎上腺素',d:'偷走對手一件道具並立即使用（不能偷腎上腺素、喇叭槍、干擾器）。'},
+  horn:{n:'喇叭槍',d:'槍管一分為二：連開兩發，第一發射向指定的玩家，第二發射向自己，兩發子彈同時消耗。若打中自己的是空包彈，下一次行動仍是你。（彈匣至少要有 2 發）'},
+  jammer:{n:'干擾器',d:'干擾對方桌上的一件道具：道具閃過一道電光後消失，無法再使用。'},
+  extra:{n:'額外子彈',d:'在彈匣最後一順位再塞入一顆實彈。'}
 };
-const BASIC=['magnifier','beer','saw','cuffs','cigarette'];
+const BASIC=['magnifier','beer','saw','cuffs','cigarette','horn','jammer','extra'];
+const NOSTEAL=['adrenaline','horn','jammer'];
 const ALLITEMS=Object.keys(ITEM_DEFS);
 const SLOTS=8;
 const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
@@ -1037,29 +1040,49 @@ function applyDamage(S,t,n,ev){
     else{S.hp[t]=0;S.over=(t==='p')?'lose':'win';ev.over=S.over;}
   }
 }
-function shoot(S,who,target){
+function fire(S,who,target){
   const shell=S.chamber.shift();S.kn.p.shift();S.kn.d.shift();
   S.left[shell]--;
   const saw=S.sawed;S.sawed=false;
   const ev={type:'shot',who,target,shell,dmg:0,saw,skip:null,over:null,sudden:null,needReload:false};
   if(shell==='live'){ev.dmg=saw?2:1;applyDamage(S,target,ev.dmg,ev);}
-  if(!S.over){
-    let next=(shell==='blank'&&who===target)?who:other(who);
-    if(next!==who&&S.cuffed[next]){S.cuffed[next]=false;ev.skip=next;next=who;}
-    S.turn=next;
-    if(S.chamber.length===0)ev.needReload=true;
-  }
+  return ev;
+}
+function passTurn(S,ev,who,again){
+  if(S.over)return;
+  let next=again?who:other(who);
+  if(next!==who&&S.cuffed[next]){S.cuffed[next]=false;ev.skip=next;next=who;}
+  S.turn=next;
+  if(S.chamber.length===0)ev.needReload=true;
+}
+function shoot(S,who,target){
+  const ev=fire(S,who,target);
+  passTurn(S,ev,who,ev.shell==='blank'&&who===target);
+  return ev;
+}
+/* 喇叭槍：第一發射對手、第二發射自己，同時消耗兩發 */
+function useHorn(S,who,slot){
+  S.inv[who][slot]=null;
+  const o=other(who);
+  const e1=fire(S,who,o);
+  const ev={type:'horn',item:'horn',who,shots:[e1],skip:null,over:null,sudden:null,needReload:false};
+  if(S.over){ev.over=S.over;return ev;}
+  const e2=fire(S,who,who);ev.shots.push(e2);
+  if(S.over){ev.over=S.over;return ev;}
+  passTurn(S,ev,who,e2.shell==='blank');
   return ev;
 }
 function canUse(S,who,type){
   if(type==='saw')return !S.sawed;
   if(type==='cuffs')return !S.cuffed[other(who)];
   if(type==='adrenaline')return stealable(S,who).length>0;
+  if(type==='horn')return S.chamber.length>=2;
+  if(type==='jammer')return S.inv[other(who)].some(t=>t);
   return true;
 }
 function stealable(S,who){
   const o=other(who),r=[];
-  S.inv[o].forEach((t,i)=>{if(t&&t!=='adrenaline'&&canUse(S,who,t))r.push(i);});
+  S.inv[o].forEach((t,i)=>{if(t&&!NOSTEAL.includes(t)&&canUse(S,who,t))r.push(i);});
   return r;
 }
 /* 套用道具效果（不處理背包欄位） */
@@ -1086,12 +1109,8 @@ function applyItem(S,who,type){
       S.chamber[0]=flip(S.chamber[0]);
       for(const k of ['p','d'])if(S.kn[k][0])S.kn[k][0]=flip(S.kn[k][0]);
       break;
-    case 'medicine':
-      if(Math.random()<0.5){
-        if(S.sudden[who])ev.none='sudden';
-        else{S.hp[who]=Math.min(S.maxHp,S.hp[who]+2);ev.healed=2;}
-        ev.ok=true;
-      }else{ev.ok=false;ev.dmg=1;applyDamage(S,who,1,ev);}
+    case 'extra':
+      S.chamber.push('live');S.left.live++;ev.added=S.chamber.length;
       break;
   }
   return ev;
@@ -1100,6 +1119,12 @@ function useItem(S,who,slot){
   const type=S.inv[who][slot];
   S.inv[who][slot]=null;
   return applyItem(S,who,type);
+}
+/* 干擾器：摧毀對手桌上指定道具 */
+function useJammer(S,who,slot,tslot){
+  const o=other(who);const victim=S.inv[o][tslot];
+  S.inv[who][slot]=null;S.inv[o][tslot]=null;
+  return {type:'item',item:'jammer',who,tslot,victim,needReload:false,over:null,sudden:null};
 }
 function useAdrenaline(S,who,slot,tslot){
   const o=other(who);
@@ -1129,7 +1154,6 @@ function dealerDecide(S){
   const pr=probNow(S,'d');
   // 1. 回血
   if(S.hp.d<S.maxHp&&!S.sudden.d&&has('cigarette')>=0)return {t:'item',slot:has('cigarette')};
-  if(!S.sudden.d&&S.hp.d<=S.maxHp-2&&S.hp.d>=2&&has('medicine')>=0&&Math.random()<0.6)return {t:'item',slot:has('medicine')};
   // 2. 查彈
   if(!cur&&has('magnifier')>=0)return {t:'item',slot:has('magnifier')};
   if(!cur&&has('phone')>=0&&S.chamber.length>1&&Math.random()<0.8)return {t:'item',slot:has('phone')};
@@ -1137,11 +1161,24 @@ function dealerDecide(S){
   if(has('adrenaline')>=0){
     const st=stealable(S,'d');
     if(st.length){
-      const pri=['magnifier','saw','cigarette','cuffs','inverter','phone','beer','medicine'];
+      const pri=['magnifier','saw','cigarette','cuffs','extra','inverter','phone','beer'];
       let best=st[0],bs=99;
       for(const i of st){const r=pri.indexOf(S.inv.p[i]);if(r<bs){bs=r;best=i;}}
       if(Math.random()<0.85)return {t:'adr',slot:has('adrenaline'),target:best};
     }
+  }
+  // 3.5 干擾器：摧毀玩家桌上最有威脅的道具
+  if(has('jammer')>=0&&S.inv.p.some(t=>t)&&Math.random()<0.7){
+    const pri=['adrenaline','horn','saw','cuffs','magnifier','inverter','extra','cigarette','phone','beer','jammer'];
+    let best=-1,bs=99;S.inv.p.forEach((t,i)=>{if(t){const r=pri.indexOf(t);if(r<bs){bs=r;best=i;}}});
+    return {t:'jam',slot:has('jammer'),target:best};
+  }
+  // 3.6 額外子彈：在彈匣尾端多塞一顆實彈
+  if(has('extra')>=0&&S.chamber.length<8&&Math.random()<0.5)return {t:'item',slot:has('extra')};
+  // 3.7 喇叭槍：確定第一發是實彈（打向玩家），且第二發（打向自己）大概率是空包彈時才使用
+  if(has('horn')>=0&&S.chamber.length>=2&&cur==='live'&&S.hp.d>=2){
+    const k2=S.kn.d[1],p2=(L-1)/Math.max(1,tot-1);
+    if(k2==='blank'||(!k2&&p2<=0.34))return {t:'item',slot:has('horn')};
   }
   // 4. 已知
   if(cur==='live'){
@@ -1167,7 +1204,7 @@ function dealerDecide(S){
   return {t:'shoot',target:me};
 }
 
-if(false)module.exports={ITEM_DEFS,BASIC,ALLITEMS,SLOTS,newMatch,startRound,reload,shoot,useItem,useAdrenaline,canUse,stealable,probNow,dealerDecide,other,rnd};
+if(false)module.exports={ITEM_DEFS,BASIC,ALLITEMS,SLOTS,newMatch,startRound,reload,shoot,useItem,useHorn,useJammer,useAdrenaline,canUse,stealable,probNow,dealerDecide,other,rnd};
 
 /* ===================== 說明書內容（依中文說明書整理） ===================== */
 const MANUAL=[
@@ -1179,8 +1216,8 @@ const MANUAL=[
 <h4>兩種射擊目標</h4>
 <table><tr><th>射擊對手</th><td>實彈：對手受傷；空包彈：無傷害。不論哪種，你的回合都結束。</td></tr>
 <tr><th>射擊自己</th><td>實彈：自己受傷，回合結束；<b style="color:#ff6a5c">空包彈：不受傷，而且繼續你的回合！</b>這是全遊戲最重要的規則。</td></tr></table>
-<h4>裝填</h4><p>槍膛打空時，莊家會公開本次裝填有幾發實彈、幾發空包彈，再以隨機順序裝入。你知道數量，但不知道順序。每次開槍或用啤酒退彈後，剩餘數量就會改變，請持續追蹤。</p>
-<h4>生命值</h4><p>以右側電擊器的閃電格數表示。被實彈擊中失去 1 格，手鋸 2 格。香菸回復 1 格，但不能超過上限。</p>
+<h4>裝填</h4><p>槍膛打空時，莊家會公開本次裝填有幾發實彈、幾發空包彈，再以隨機順序裝入。你知道數量，但不知道順序。每次開槍、用退彈器退彈或用額外子彈加彈後，剩餘數量就會改變，請持續追蹤。</p>
+<h4>生命值</h4><p>以右側電擊器的閃電格數表示。被實彈擊中失去 1 格，手鋸 2 格。橘子汽水回復 1 格，但不能超過上限。</p>
 <h4>操作方式</h4><ul>
 <li>點擊桌上的<b>霰彈槍</b>拿起它，再選擇「對莊家開火」或「對自己開火」（也可直接點莊家，或點畫面下方；↑ / ↓ 鍵亦可）。</li>
 <li>點一下自己桌面上的<b>道具</b>：道具會放大並顯示說明，下方再按<b>「使用」</b>確認或<b>「取消」</b>（電腦鍵盤：Enter 使用、Esc 取消）。</li>
@@ -1189,23 +1226,23 @@ const MANUAL=[
 <li><b>電腦鍵鼠：</b>空白鍵／Enter 拿起槍；W／↑ 對莊家開火，S／↓ 對自己開火；數字鍵 1–4 查看遠排道具、5–8 查看近排道具（腎上腺素後再按 1–8 選莊家道具）。</li>
 <li><b>手機觸控：</b>直式畫面。點一下道具會放大並顯示說明，再按「使用」才會生效；拿起槍後用畫面下方的按鈕或直接點莊家／下方來開火。</li></ul>`},
 {k:'item',t:'11 種道具',h:`
-<p>本遊戲收錄單人模式會出現的 9 種道具；干擾器與遙控器為多人專用，列出供參考。</p>
+<p>全部 11 種道具在單人與多人模式都會出現。點一下道具會先放大並顯示說明，再按「使用」確認；不想用就按「取消」，道具會回到原位。</p>
 <table><tr><th>道具</th><th>效果</th><th>重點</th></tr>
 <tr><td>放大鏡</td><td>查看目前這一發是實彈或空包彈</td><td>情報王。看完再決定射誰或搭配其他道具。</td></tr>
-<tr><td>啤酒</td><td>退出目前這一發並揭露種類</td><td>把未知縮成已知，但別退掉你想用的實彈。</td></tr>
+<tr><td>退彈器</td><td>退出目前這一發並揭露種類</td><td>把未知縮成已知，但別退掉你想用的實彈。</td></tr>
 <tr><td>手鋸</td><td>下一發實彈傷害 2 點</td><td>配合放大鏡確認實彈再鋸；空包彈鋸了也白鋸。</td></tr>
 <tr><td>手銬</td><td>對手跳過下一次行動</td><td>爭取連續行動權，搭配手鋸殘局殺手。</td></tr>
-<tr><td>香菸</td><td>回復 1 點生命</td><td>滿血時沒有收益；最終階段瀕死後無效。</td></tr>
-<tr><td>拋棄式手機</td><td>告知彈匣某個隨機位置是實彈或空包彈</td><td>務必記住位置，並隨子彈消耗往前推算。</td></tr>
-<tr><td>逆轉器</td><td>目前這一發：實彈⇄空包彈</td><td>未知時別亂用；確認空包彈後用，可變成致命一擊。</td></tr>
-<tr><td>腎上腺素</td><td>偷對手一件道具並立刻使用</td><td>不能偷腎上腺素。偷到的道具必須馬上用。</td></tr>
-<tr><td>過期藥物</td><td>50% 回復 2 點、50% 失去 1 點</td><td>只剩 1 點生命時是真正的賭命。</td></tr>
-<tr><td>干擾器（多人）</td><td>指定玩家跳過下一次行動</td><td>取代手銬。</td></tr>
-<tr><td>遙控器（多人）</td><td>反轉行動輪替方向</td><td>三～四人局才有價值。</td></tr></table>`},
+<tr><td>橘子汽水</td><td>回復 1 點生命</td><td>滿血時沒有收益；最終階段瀕死後無效。</td></tr>
+<tr><td>聽診器</td><td>告知彈匣某個隨機位置是實彈或空包彈</td><td>務必記住位置，並隨子彈消耗往前推算。</td></tr>
+<tr><td>U形磁鐵</td><td>目前這一發：實彈⇄空包彈</td><td>未知時別亂用；確認空包彈後用，可變成致命一擊。</td></tr>
+<tr><td>腎上腺素</td><td>偷對手一件道具並立刻使用</td><td>不能偷腎上腺素、喇叭槍、干擾器。偷到的道具必須馬上用。</td></tr>
+<tr><td>喇叭槍</td><td>槍管一分為二：連開兩發，第一發射向你指定的玩家，第二發射向自己</td><td>同時消耗兩發子彈。打中自己的若是空包彈，下一次行動仍是你；若是實彈，你也會受傷。彈匣至少要有 2 發才能用。</td></tr>
+<tr><td>干擾器</td><td>指定對方桌上一件道具，閃過電光後立刻消失</td><td>拿來摧毀對手的手鋸、手銬或腎上腺素，不能干擾自己的道具。</td></tr>
+<tr><td>額外子彈</td><td>在彈匣最後一順位再塞入一顆實彈</td><td>不改變目前這一發；子彈總數與實彈數量各 +1，之後的機率會更危險。</td></tr></table>`},
 {k:'mode',t:'遊戲模式',h:`
 <h4>故事模式</h4>
 <p><b>第一階段</b>：雙方各 2 格生命，沒有道具。第一輪 1 實 2 空，第二輪 3 實 2 空。學會算機率與「對自己開槍」。</p>
-<p><b>第二階段</b>：各 4 格生命，每次裝填各發 2 件道具（放大鏡、啤酒、手鋸、手銬、香菸）。首次裝填 1 實 1 空。</p>
+<p><b>第二階段</b>：各 4 格生命，每次裝填各發 2 件道具（放大鏡、退彈器、手鋸、手銬、橘子汽水，以及喇叭槍、干擾器、額外子彈）。首次裝填 1 實 1 空。</p>
 <p><b>第三階段</b>：每次裝填各發 4 件道具。生命格歸零後不會立刻死亡，而是進入<b style="color:#ff6a5c">瀕死狀態</b>（只剩 1 點、道具無法回血），再中彈就是最終失敗。上一階段剩下的道具會保留。</p>
 <p>前兩個階段若失敗，會被電擊器救活並重打該階段；第三階段失敗即結束。</p>
 <h4>加倍或歸零</h4>
@@ -1233,34 +1270,36 @@ const MANUAL=[
 <li><b>全是空包彈</b>：對自己開槍，保留回合。</li>
 <li><b>各半 50%</b>：看生命。自己只剩 1 格就別賭自己；對手只剩 1 格，攻擊對手就可能一槍終結。</li></ul>
 <h4>不要只看成功率</h4><p>要比較「成功時得到什麼、失敗時失去什麼」：還剩多少生命？有沒有手鋸／手銬？是否已知後面的彈序？射完輪到誰？能否直接結束比賽？</p>
-<h4>遊戲內的提示</h4><p>左上角紅字是目前剩餘子彈數量；右上角是這一發的實彈機率；「已知第 N 為實／空」代表手機或其他情報告訴你的彈序位置（N 由目前槍膛起算）。可在選項中關閉。</p>`},
+<h4>遊戲內的提示</h4><p>左上角紅字是目前剩餘子彈數量；右上角是這一發的實彈機率；「已知第 N 為實／空」代表聽診器或其他情報告訴你的彈序位置（N 由目前槍膛起算）。可在選項中關閉。</p>`},
 {k:'tip',t:'15 個技巧',h:`<ol class="tip15">
 <li><b>永遠記住剩餘實彈與空包彈數量。</b>沒有放大鏡也能比亂猜強得多。</li>
 <li><b>不要每次都射對手。</b>確定是空包彈時，射自己可以保留回合。</li>
-<li><b>射擊前先檢查道具。</b>放大鏡、逆轉器、手鋸、手銬、腎上腺素別忘了先用。</li>
+<li><b>射擊前先檢查道具。</b>放大鏡、U形磁鐵、手鋸、手銬、腎上腺素別忘了先用。</li>
 <li><b>手鋸優先搭配確定的實彈。</b></li>
-<li><b>香菸別留到沒機會用</b>，但滿血時也別浪費。</li>
-<li><b>手機情報一定要記錄</b>，並隨子彈消耗更新位置。</li>
-<li><b>不知道子彈時不要亂用逆轉器</b>，它只是交換兩種未知。</li>
+<li><b>橘子汽水別留到沒機會用</b>，但滿血時也別浪費。</li>
+<li><b>聽診器情報一定要記錄</b>，並隨子彈消耗更新位置。</li>
+<li><b>不知道子彈時不要亂用U形磁鐵</b>，它只是交換兩種未知。</li>
 <li><b>用對手生命判斷優先事項</b>：剩 1 格普通實彈即可；剩 2 格手鋸價值爆表。</li>
 <li><b>最後一發的情報通常最完整</b>，越接近打空越容易推理。</li>
 <li><b>不要犯賭徒謬誤</b>：連續三發空包彈不代表下一發「該」是實彈，只有剩餘數量才算數。</li>
 <li><b>控制對手行動權</b>，有時比造成 1 點傷害更重要。</li>
-<li><b>留意對手道具</b>：他有逆轉器，你的空包彈情報就可能失效；他有腎上腺素，你的好道具也可能被偷。</li>
+<li><b>留意對手道具</b>：他有U形磁鐵，你的空包彈情報就可能失效；他有腎上腺素，你的好道具也可能被偷。</li>
 <li><b>多人局要判斷誰最危險</b>，不一定是血最少的人。</li>
 <li><b>有時保命比追傷害重要。</b>危險時優先治療、情報或控制。</li>
 <li><b>接受運氣的存在。</b>真正的技術，是在許多局中持續做出更有利的選擇。</li></ol>`},
 {k:'combo',t:'道具連招',h:`
 <table><tr><th>連招</th><th>流程</th></tr>
 <tr><td>放大鏡＋手鋸</td><td>確認實彈 → 手鋸 → 射擊對手，造成 2 點傷害。</td></tr>
-<tr><td>放大鏡＋逆轉器</td><td>確認空包彈 → 逆轉成實彈 → 射擊對手。反過來，實彈也能變空包彈。</td></tr>
+<tr><td>放大鏡＋U形磁鐵</td><td>確認空包彈 → 反轉成實彈 → 射擊對手。反過來，實彈也能變空包彈。</td></tr>
 <tr><td>放大鏡＋手銬＋手鋸</td><td>確認子彈 → 銬住對手 → 手鋸 → 射擊。降低對手立即反擊的可能。</td></tr>
-<tr><td>啤酒＋計數</td><td>剩 1 實 1 空時退出一發：退出空包彈，最後一發必是實彈；反之亦然。</td></tr>
-<tr><td>手機＋啤酒</td><td>手機說第三發是實彈；用啤酒或空包彈把它推到第一發位置，再精準運用。</td></tr>
-<tr><td>腎上腺素＋關鍵道具</td><td>未知彈就偷放大鏡；確定實彈且對手 2 格血就偷手鋸；自己血少就偷香菸。</td></tr></table>
-<h4>範例：手機追蹤</h4><p>剩 4 發，手機說第三發是實彈。第一發射出空包彈後，它變成第二發；再退出一發空包彈，它就變成第一發，你可以確定它是實彈。</p>`},
+<tr><td>退彈器＋計數</td><td>剩 1 實 1 空時退出一發：退出空包彈，最後一發必是實彈；反之亦然。</td></tr>
+<tr><td>聽診器＋退彈器</td><td>聽診器說第三發是實彈；用退彈器或空包彈把它推到第一發位置，再精準運用。</td></tr>
+<tr><td>腎上腺素＋關鍵道具</td><td>未知彈就偷放大鏡；確定實彈且對手 2 格血就偷手鋸；自己血少就偷橘子汽水。</td></tr>
+<tr><td>放大鏡＋喇叭槍</td><td>確認第一發是實彈、而第二發大概率是空包彈時使用：一槍同時打中對手，又保住自己的行動權。</td></tr>
+<tr><td>干擾器＋腎上腺素</td><td>先用干擾器摧毀對手的關鍵道具，對手就沒東西可偷、也沒東西可用。</td></tr></table>
+<h4>範例：聽診器追蹤</h4><p>剩 4 發，聽診器說第三發是實彈。第一發射出空包彈後，它變成第二發；再用退彈器退出一發空包彈，它就變成第一發，你可以確定它是實彈。</p>`},
 {k:'faq',t:'常見問題',h:`
-<h4>為什麼明明知道還有空包彈，還是中彈？</h4><p>知道「剩餘子彈有空包彈」不等於「下一發是空包彈」。除非用放大鏡、手機或完整推理確定。</p>
+<h4>為什麼明明知道還有空包彈，還是中彈？</h4><p>知道「剩餘子彈有空包彈」不等於「下一發是空包彈」。除非用放大鏡、聽診器或完整推理確定。</p>
 <h4>為什麼高手會對自己開槍？</h4><p>因為空包彈打自己可以保留行動權，通常是已知空包彈或機率有利時的決策，不是盲目賭博。</p>
 <h4>手鋸可以一直增傷嗎？</h4><p>不行，它是消耗品，只強化下一次射擊。</p>
 <h4>可以靠數學保證勝利嗎？</h4><p>不能。數學能幫你長期做出更好的決策，但無法消除隨機性。</p>
@@ -1322,7 +1361,13 @@ const SFX={
   load(){for(let i=0;i<5;i++){aNoise(.05,.5,'bandpass',2200,null,null,AU.ctx&&AU.ctx.currentTime+i*.17);aTone(260,.05,'square',.1,null,null,AU.ctx&&AU.ctx.currentTime+i*.17);}},
   ring(){aTone(5200,1.6,'sine',.06);},
   defib(){aNoise(.5,.7,'lowpass',3000,100);aTone(70,.8,'sawtooth',.4,30);},
-  thud(){aTone(70,.25,'sine',.8,35);}
+  thud(){aTone(70,.25,'sine',.8,35);},
+  zap(){aNoise(.35,.7,'highpass',2500,7000);aTone(1800,.3,'sawtooth',.25,90);aTone(60,.3,'square',.3,40);},
+  horn(){aTone(110,.5,'sawtooth',.3,95);aTone(165,.5,'sawtooth',.22,140);aNoise(.12,.4,'bandpass',900);},
+  soda(){aNoise(.25,.5,'highpass',5000,9000);aTone(1500,.04,'square',.12);},
+  scope(){aTone(900,.12,'sine',.25);aTone(900,.12,'sine',.25,null,null,AU.ctx&&AU.ctx.currentTime+.22);},
+  magnet(){aTone(300,.3,'sawtooth',.2,1200);aTone(1200,.3,'sawtooth',.15,300,null,AU.ctx&&AU.ctx.currentTime+.15);},
+  bullet(){aNoise(.05,.5,'bandpass',2600);aTone(700,.05,'square',.16,300);aTone(400,.08,'square',.14,200,null,AU.ctx&&AU.ctx.currentTime+.1);}
 };
 function sfx(n,x){if(!AU.ctx||AU.ctx.state!=='running')return;try{SFX[n]&&SFX[n](x);}catch(e){}}
 
@@ -1523,8 +1568,11 @@ function texLabel(kind){
   else if(kind==='inv'){x.fillStyle='#2e2e34';x.fillRect(0,0,256,128);x.strokeStyle='#4a4a52';x.lineWidth=4;x.strokeRect(6,6,244,116);
     x.fillStyle='#e9dec6';x.beginPath();x.moveTo(70,100);x.lineTo(70,50);x.lineTo(50,50);x.lineTo(90,16);x.lineTo(130,50);x.lineTo(110,50);x.lineTo(110,100);x.fill();
     x.beginPath();x.moveTo(190,28);x.lineTo(190,78);x.lineTo(170,78);x.lineTo(210,112);x.lineTo(250,78);x.lineTo(230,78);x.lineTo(230,28);x.fill();}
-  else if(kind==='med'){x.fillStyle='#e9e0cc';x.fillRect(0,0,256,128);x.fillStyle='#a4302a';x.fillRect(0,0,256,18);x.fillRect(0,110,256,18);
-    x.fillStyle='#2a1a14';x.font='bold 26px sans-serif';x.fillText('EXPIRED',40,60);x.font='16px sans-serif';x.fillText('Rx  2 mg · 2019',46,92);}
+  else if(kind==='soda'){x.fillStyle='#f08a1c';x.fillRect(0,0,256,128);x.fillStyle='#ffe3b0';x.fillRect(0,0,256,14);x.fillRect(0,114,256,14);
+    x.fillStyle='#fff3d6';x.beginPath();x.arc(64,64,30,0,7);x.fill();x.fillStyle='#f6a43a';x.beginPath();x.arc(64,64,24,0,7);x.fill();
+    x.strokeStyle='#fff3d6';x.lineWidth=3;for(let i=0;i<8;i++){const a=i*Math.PI/4;x.beginPath();x.moveTo(64,64);x.lineTo(64+Math.cos(a)*24,64+Math.sin(a)*24);x.stroke();}
+    x.fillStyle='#fff';x.font='bold 30px sans-serif';x.fillText('ORANGE',112,74);}
+  else if(kind==='horn'){x.fillStyle='#2a2a30';x.fillRect(0,0,256,128);}
   else if(kind==='screen'){x.fillStyle='#d99aa8';x.fillRect(0,0,256,128);for(let i=0;i<600;i++){x.fillStyle=Math.random()<.5?'#2a1a20':'#f6d4dc';x.fillRect(rr(0,256),rr(0,128),rr(2,8),rr(2,6));}}
   else if(kind==='keys'){x.fillStyle='#3a3a42';x.fillRect(0,0,256,128);for(let i=0;i<4;i++)for(let j=0;j<3;j++){x.fillStyle='#86868f';x.fillRect(16+i*58,10+j*38,46,28);}}
   return c;}
@@ -1533,7 +1581,7 @@ let MT=null,TX={};
 function initMaterials(){
   const T=(c,o)=>R3.tex(c,o);
   TX.brick=T(texBrick(),{repeat:true});TX.floor=T(texFloor(),{repeat:true});TX.wood=T(texWood(),{repeat:true});TX.table=T(texTable());
-  TX.mask=T(drawMask(0));TX.beer=T(texLabel('beer'));TX.pack=T(texLabel('pack'));TX.inv=T(texLabel('inv'));TX.med=T(texLabel('med'));TX.screen=T(texLabel('screen'));TX.keys=T(texLabel('keys'));
+  TX.mask=T(drawMask(0));TX.beer=T(texLabel('beer'));TX.pack=T(texLabel('pack'));TX.inv=T(texLabel('inv'));TX.soda=T(texLabel('soda'));TX.screen=T(texLabel('screen'));TX.keys=T(texLabel('keys'));
   const defc=cv2(512,200);TX.defc=defc;TX.defib=T(defc);
   MT={
     steel:MAT({col:[.62,.62,.66],spec:.9,shin:70}),dsteel:MAT({col:[.2,.2,.23],spec:.7,shin:50}),
@@ -1563,7 +1611,8 @@ function initMaterials(){
     shellRed:MAT({col:[.75,.1,.08],spec:.6,shin:40}),shellBlue:MAT({col:[.15,.28,.8],spec:.6,shin:40}),
     crateM:MAT({col:[.13,.1,.1],spec:.3,shin:20}),crateIn:MAT({col:[.02,.015,.015],spec:.1,shin:6,double:true}),
     can:MAT({col:[1,1,1],tex:TX.beer,spec:.8,shin:60}),pack:MAT({col:[1,1,1],tex:TX.pack,spec:.2,shin:12}),
-    invM:MAT({col:[1,1,1],tex:TX.inv,spec:.3,shin:20}),med:MAT({col:[1,1,1],tex:TX.med,spec:.2,shin:14}),
+    invM:MAT({col:[1,1,1],tex:TX.inv,spec:.3,shin:20}),soda:MAT({col:[1,1,1],tex:TX.soda,spec:.6,shin:40}),
+    magnet:MAT({col:[.75,.06,.07],spec:.7,shin:50}),zap:MAT({col:[.7,.85,1],emis:[2.2,2.6,3.4],unlit:true,cast:false}),ora:MAT({col:[1,.55,.12],emis:[.5,.22,0],alpha:.82,spec:.9,shin:70,cast:false}),
     screen:MAT({col:[1,1,1],tex:TX.screen,emis:[.5,.3,.35],spec:.3,shin:20}),keys:MAT({col:[1,1,1],tex:TX.keys,spec:.3,shin:20})
   };
 }
@@ -1582,10 +1631,15 @@ function mkItem(type){
       add(nodeOf(G_('mg_n',()=>GEO.bakeRotZ(GEO.cyl(.011,.011,.03,12),PI/2)),MT.steel,.012,.012,0));
       break;}
     case 'beer':{
-      add(nodeOf(G_('beer_s',()=>GEO.cyl(.036,.036,.115,32,false)),MT.can,0,.0575,0));
-      add(nodeOf(G_('beer_t',()=>GEO.cyl(.032,.036,.008,32)),MT.steel,0,.119,0));
-      add(nodeOf(G_('beer_b',()=>GEO.cyl(.036,.032,.008,32)),MT.steel,0,.004,0));
-      add(nodeOf(G_('beer_tab',()=>GEO.box(.016,.002,.024)),MT.dsteel,0,.124,0));
+      // 退彈器：鋼製推桿＋圓環握把＋黃銅退彈口
+      const ax=GEO.bakeRotZ;
+      add(nodeOf(G_('ej_t',()=>ax(GEO.cyl(.014,.014,.11,18),PI/2)),MT.steel,.01,.016,0));
+      add(nodeOf(G_('ej_g',()=>ax(GEO.cyl(.018,.018,.03,14),PI/2)),MT.dsteel,.07,.016,0));
+      add(nodeOf(G_('ej_h',()=>GEO.torus(.016,.004,8,20)),MT.steel,-.062,.016,0,0,PI/2,0));
+      add(nodeOf(G_('ej_r',()=>ax(GEO.cyl(.005,.005,.05,8),PI/2)),MT.steel,-.04,.016,0));
+      add(nodeOf(G_('ej_p',()=>GEO.box(.03,.012,.04)),MT.brass,.03,.034,0));
+      add(nodeOf(G_('ej_s',()=>GEO.cyl(.012,.012,.03,16)),MT.shellRed,.03,.056,0));
+      add(nodeOf(G_('ej_sb',()=>GEO.cyl(.0135,.0135,.008,16)),MT.brass,.03,.042,0));
       break;}
     case 'saw':{
       add(nodeOf(G_('saw_b',()=>GEO.box(.14,.003,.034)),MT.steel,.1,.012,0));
@@ -1600,24 +1654,35 @@ function mkItem(type){
       for(let i=0;i<3;i++)add(nodeOf(G_('cf_c',()=>GEO.torus(.007,.0025,6,12)),MT.steel,-.012+i*.012,.008,0,0,0,i%2?PI/2:0));
       break;}
     case 'cigarette':{
-      add(nodeOf(G_('cg_b',()=>GEO.box(.062,.022,.092)),MT.pack,0,.011,0));
-      add(nodeOf(G_('cg_lid',()=>GEO.box(.062,.006,.02)),MT.white,0,.025,-.036));
-      for(let i=0;i<3;i++)add(nodeOf(G_('cg_c',()=>GEO.bakeRotX(GEO.cyl(.0045,.0045,.03,8),PI/2)),MT.white,-.016+i*.016,.022,-.052));
+      // 橘子汽水：玻璃瓶、橘色汽水、貼紙與皇冠蓋
+      add(nodeOf(G_('so_b',()=>GEO.cyl(.03,.03,.085,26,false)),MT.soda,0,.0425,0));
+      add(nodeOf(G_('so_l',()=>GEO.cyl(.0285,.0285,.02,26)),MT.ora,0,.095,0));
+      add(nodeOf(G_('so_s',()=>GEO.cyl(.0285,.012,.03,24)),MT.ora,0,.1,0));
+      add(nodeOf(G_('so_n',()=>GEO.cyl(.012,.012,.034,16)),MT.glass,0,.132,0));
+      add(nodeOf(G_('so_c',()=>GEO.cyl(.0145,.0145,.01,16)),MT.red,0,.152,0));
+      add(nodeOf(G_('so_r',()=>GEO.torus(.0145,.0016,6,16)),MT.brass,0,.147,0,PI/2,0,0));
       break;}
     case 'phone':{
-      add(nodeOf(G_('ph_l',()=>GEO.box(.052,.012,.07)),MT.keys,0,.006,.03));
-      const up=new Nd();up.at(0,.012,-.005);up.euler(-1.9,0,0);add(up);
-      up.add(nodeOf(G_('ph_u',()=>GEO.box(.052,.012,.07)),MT.dsteel,0,0,-.035));
-      up.add(nodeOf(G_('ph_s',()=>GEO.plane(.042,.04)),MT.screen,0,.0065,-.036));
-      add(nodeOf(G_('ph_h',()=>GEO.bakeRotZ(GEO.cyl(.006,.006,.052,10),PI/2)),MT.steel,0,.012,0));
-      // 預設 keys 貼在 plane 上
-      const k=nodeOf(G_('ph_k',()=>GEO.plane(.044,.05)),MT.keys,0,.0125,.035);add(k);
+      // 聽診器：黑色導管圈、鋼製聽頭、雙耳塞
+      add(nodeOf(G_('st_l',()=>GEO.torus(.048,.0045,8,32)),MT.rubber,0,.008,-.012));
+      add(nodeOf(G_('st_y',()=>GEO.box(.01,.01,.05)),MT.rubber,0,.008,.03));
+      add(nodeOf(G_('st_d',()=>GEO.cyl(.028,.028,.008,28)),MT.steel,0,.008,.082));
+      add(nodeOf(G_('st_r',()=>GEO.torus(.028,.0045,8,28)),MT.dsteel,0,.011,.082,PI/2,0,0));
+      add(nodeOf(G_('st_c',()=>GEO.cyl(.01,.01,.014,12)),MT.steel,0,.008,.056));
+      for(const sx of [-1,1]){
+        add(nodeOf(G_('st_e',()=>GEO.sphere(.008,10,8)),MT.steel,sx*.026,.012,-.064));
+        add(nodeOf(G_('st_w',()=>GEO.box(.004,.004,.045)),MT.steel,sx*.02,.012,-.044));
+      }
       break;}
     case 'inverter':{
-      add(nodeOf(G_('iv_b',()=>GEO.box(.13,.04,.078)),MT.dsteel,0,.02,0));
-      add(nodeOf(G_('iv_p',()=>GEO.plane(.11,.06)),MT.invM,0,.0405,0));
-      add(nodeOf(G_('iv_led',()=>GEO.sphere(.005,10,8)),MT.ledRed,-.05,.044,.03));
-      add(nodeOf(G_('iv_k',()=>GEO.cyl(.008,.008,.012,12)),MT.steel,.05,.045,-.025));
+      // U 形磁鐵：紅色馬蹄鐵＋銀色磁極
+      const R=.036,N=9;
+      for(let k=0;k<N;k++){const a=PI*k/(N-1);
+        const n=nodeOf(G_('mg_u',()=>GEO.box(.022,.022,.016)),MT.magnet,Math.cos(a)*R,.011,-Math.sin(a)*R);n.euler(0,a,0);add(n);}
+      for(const sx of [-1,1]){
+        add(nodeOf(G_('mg_leg',()=>GEO.box(.022,.022,.05)),MT.magnet,sx*R,.011,.025));
+        add(nodeOf(G_('mg_tip',()=>GEO.box(.0225,.0225,.022)),MT.steel,sx*R,.011,.061));
+      }
       break;}
     case 'adrenaline':{
       const ax=GEO.bakeRotZ;const yy=.016;
@@ -1629,10 +1694,36 @@ function mkItem(type){
       add(nodeOf(G_('ad_n',()=>ax(GEO.cyl(.0012,.003,.05,8),-PI/2)),MT.steel,.075,yy,0));
       add(nodeOf(G_('ad_c',()=>ax(GEO.cyl(.006,.01,.012,12),PI/2)),MT.dsteel,.053,yy,0));
       break;}
-    case 'medicine':{
-      add(nodeOf(G_('md_b',()=>GEO.cyl(.03,.03,.08,24)),MT.amber,0,.04,0));
-      add(nodeOf(G_('md_c',()=>GEO.cyl(.031,.031,.02,24)),MT.white,0,.09,0));
-      add(nodeOf(G_('md_l',()=>GEO.cyl(.0305,.0305,.04,24,false)),MT.med,0,.04,0));
+    case 'horn':{
+      // 喇叭槍：木托＋一分為二的喇叭口槍管
+      const ax=GEO.bakeRotZ;
+      add(nodeOf(G_('hn_s',()=>GEO.box(.07,.034,.036)),MT.woodD,-.07,.02,0));
+      add(nodeOf(G_('hn_g',()=>GEO.box(.022,.03,.026)),MT.wood,-.1,.008,0,0,0,-.5));
+      add(nodeOf(G_('hn_r',()=>ax(GEO.cyl(.014,.014,.05,14),PI/2)),MT.steel,-.015,.022,0));
+      for(const sg of [-1,1]){
+        const br=new Nd();br.at(.01,.022,0);br.euler(0,sg*.42,0);add(br);
+        br.add(nodeOf(G_('hn_b',()=>ax(GEO.cyl(.008,.008,.07,12),PI/2)),MT.steel,.035,0,0));
+        br.add(nodeOf(G_('hn_f',()=>ax(GEO.cyl(.021,.009,.03,16),-PI/2)),MT.brass,.083,0,0));
+      }
+      break;}
+    case 'jammer':{
+      // 干擾器：黑色訊號干擾盒＋天線＋閃爍指示燈
+      add(nodeOf(G_('jm_b',()=>GEO.box(.1,.03,.064)),MT.dsteel,0,.015,0));
+      add(nodeOf(G_('jm_t',()=>GEO.box(.09,.004,.054)),MT.black,0,.032,0));
+      add(nodeOf(G_('jm_a',()=>GEO.cyl(.0032,.0032,.09,8)),MT.steel,.038,.075,-.02));
+      add(nodeOf(G_('jm_a2',()=>GEO.cyl(.0032,.0032,.07,8)),MT.steel,-.038,.065,-.02));
+      add(nodeOf(G_('jm_ab',()=>GEO.sphere(.006,10,8)),MT.ledRed,.038,.12,-.02));
+      add(nodeOf(G_('jm_led',()=>GEO.sphere(.005,10,8)),MT.ledRed,-.03,.036,.02));
+      add(nodeOf(G_('jm_k',()=>GEO.cyl(.009,.009,.01,12)),MT.steel,.02,.037,.014));
+      add(nodeOf(G_('jm_c',()=>GEO.torus(.016,.003,8,18)),MT.brass,-.01,.036,.0,PI/2,0,0));
+      break;}
+    case 'extra':{
+      // 額外子彈：大顆實彈＋黃銅彈殼
+      const sc=1.5;
+      add(nodeOf(G_('ex_b',()=>GEO.cyl(.017*1.5,.017*1.5,.055*1.5,20)),MT.shellRed,0,.0475*1.5,0));
+      add(nodeOf(G_('ex_t',()=>GEO.cyl(.0145*1.5,.017*1.5,.008*1.5,20)),MT.shellRed,0,.0765*1.5,0));
+      add(nodeOf(G_('ex_br',()=>GEO.cyl(.0175*1.5,.0175*1.5,.02*1.5,20)),MT.brass,0,.01*1.5,0));
+      add(nodeOf(G_('ex_ri',()=>GEO.torus(.0185*1.5,.0035,6,20)),MT.brass,0,.045*1.5,0,PI/2,0,0));
       break;}
   }
   g.userData.type=type;
@@ -1673,6 +1764,9 @@ function mkGun(){
   bar.add(nodeOf(G_('gn_cap',()=>GEO.bakeRotX(GEO.cyl(.012,.012,.012,14),PI/2)),MT.steel,0,-.027,.46));
   bar.add(nodeOf(G_('gn_cut',()=>GEO.torus(.0125,.0025,6,16)),MT.red,0,0,.66,PI/2,0,0)).vis=false;
   g.userData.bar=bar;g.userData.cut=bar.kids[bar.kids.length-1];
+  const rear=new Nd();rear.at(0,.0,-.42);rear.vis=false;g.add(rear);g.userData.rear=rear;
+  rear.add(nodeOf(G_('gn_rb',()=>GEO.bakeRotX(GEO.bakeMove(GEO.cyl(.0115,.0115,.34,20),0,0,-.17),PI/2)),MT.steel,0,.02,0));
+  rear.add(nodeOf(G_('gn_rf',()=>GEO.bakeRotX(GEO.bakeMove(GEO.cyl(.03,.0115,.06,20),0,0,-.03),-PI/2)),MT.brass,0,.02,-.34));
   add(nodeOf(G_('gn_fore',()=>GEO.box(.052,.042,.2)),MT.wood,0,-.012,.26));
   for(let i=0;i<7;i++)add(nodeOf(G_('gn_rib',()=>GEO.box(.056,.044,.004)),MT.woodD,0,-.012,.17+i*.025));
   g.userData.fore=g.kids[g.kids.length-8];
@@ -1890,7 +1984,29 @@ function ejectFx(type){
   const o=add(gunPose.pos,applyQ(gunPose.q,[.05,.04,-.02]));
   ejects.push({n,p:o.slice(),v:[rr(.5,1)*(gunPose.name.startsWith('d')?-1:1),rr(1.4,2),rr(-.3,.3)],w:[rr(4,9),rr(4,9),rr(2,6)],r:[0,0,0],t:0});
 }
-function flashMuzzle(){const t=gunTip();A.muz={pos:t,t:0};puff(t,12,[.7,.7,.7],1.0,.1,1.5);burst3(t,26,[[1,.8,.4],[1,.5,.2]],4,2,.04,.35);}
+/* 干擾器：桌上道具出現一道小閃電後消失 */
+function zapFx(pos,key){
+  A.zapKey=key||null;
+  let cur=null,k=0;
+  const bolt=()=>{
+    if(cur){T_ROOT.remove(cur);cur=null;}
+    if(k++>=7){A.zapKey=null;return;}
+    cur=new Nd();T_ROOT.add(cur);
+    let a=[pos[0]+rr(-.03,.03),pos[1]+.42,pos[2]+rr(-.03,.03)];
+    for(let i=1;i<=6;i++){
+      const b=i===6?[pos[0],pos[1]+.04,pos[2]]:[pos[0]+rr(-.05,.05),pos[1]+.42*(1-i/6),pos[2]+rr(-.05,.05)];
+      const d=sub(b,a),L=Math.hypot(d[0],d[1],d[2])||.01;
+      const sg=nodeOf(G_('zap_s',()=>GEO.box(.012,.012,1)),MT.zap,(a[0]+b[0])/2,(a[1]+b[1])/2,(a[2]+b[2])/2);
+      sg.q=Q.look(nrm(d));sg.scl=[1,1,L];cur.add(sg);a=b;
+    }
+    setTimeout(bolt,70);
+  };
+  bolt();
+  burst3([pos[0],pos[1]+.05,pos[2]],34,[[.6,.8,1],[1,1,1],[.9,.9,.4]],4,2,.035,.45);
+  puff([pos[0],pos[1]+.05,pos[2]],8,[.35,.35,.4],.6,.07,.9);
+}
+function rearTip(){const f=applyQ(gunPose.q,[0,0,1]);return add(gunPose.pos,mulv(f,-.92));}
+function flashMuzzle(rear){const t=rear?rearTip():gunTip();A.muz={pos:t,t:0};puff(t,12,[.7,.7,.7],1.0,.1,1.5);burst3(t,26,[[1,.8,.4],[1,.5,.2]],4,2,.04,.35);}
 /* ---------- 初始化場景 ---------- */
 function init3d(){
   R3=new Renderer(cv);
@@ -1948,6 +2064,7 @@ function renderFrame(t,dt){
   }
   gunN.pos=gunPose.pos.slice();gunN.q=gunPose.q;gunN.scl=[1.3,1.3,1.3];
   const sawed=!!(S&&S.sawed);
+  gunN.userData.rear.vis=!!A.hornOn;
   const bar=gunN.userData.bar;bar.scl=[1,1,sawed?.6:1];gunN.userData.cut.vis=sawed;gunN.userData.cut.pos=[0,0,.66];
   // 道具同步
   syncItems(t);syncLineup(t);
@@ -2057,6 +2174,7 @@ function syncItems(t){
         const hi=A.hi&&A.hi.side===side&&A.hi.i===i&&(((t*6)|0)%2===0);
         n.glow=hov||hi?.55:0;n.glowCol=hi?[1,.4,.3]:[1,.85,.6];
         if(hov)n.pos[1]+=.012;
+        if(A.zapKey===key){n.pos[0]+=rr(-.008,.008);n.pos[2]+=rr(-.008,.008);n.glow=.9;n.glowCol=[.6,.8,1];}
         if(A.ipv&&A.ipv.key===key){
           const k0=clamp((t-A.ipv.t0)/.38,0,1),k=1-Math.pow(1-k0,3),cm=SC.cam,cp=cm.pos,tg=cm.target;
           let f=[tg[0]-cp[0],tg[1]-cp[1],tg[2]-cp[2]];const fl=Math.hypot(f[0],f[1],f[2])||1;f=[f[0]/fl,f[1]/fl,f[2]/fl];
@@ -2264,12 +2382,17 @@ function mpPassTurn(M,from,ev){
   if(skips.length)ev.skips=skips;
   M.turn=s;
 }
-function mpShoot(M,who,target){
+const mpChLen=M=>M.chamber?M.chamber.length:M.chamberLen;
+function mpFire(M,who,target){
   const shell=M.chamber.shift();for(const k of M.kn)k.shift();
   M.left[shell]--;
   const saw=M.sawed;M.sawed=false;
   const ev={type:'shot',who,target,shell,dmg:0,saw,needReload:false};
   if(shell==='live'){ev.dmg=saw?2:1;mpDamage(M,target,ev.dmg,ev);}
+  return ev;
+}
+function mpShoot(M,who,target){
+  const ev=mpFire(M,who,target);const shell=ev.shell;
   if(!M.over){
     if(shell==='blank'&&who===target&&M.alive[who])M.turn=who;
     else mpPassTurn(M,who,ev);
@@ -2277,19 +2400,43 @@ function mpShoot(M,who,target){
   }
   return ev;
 }
+/* 喇叭槍：第一發射向指定玩家、第二發射向自己（同時消耗兩發） */
+function mpHorn(M,who,slot,target){
+  M.inv[who][slot]=null;
+  const e1=mpFire(M,who,target);
+  const ev={type:'horn',item:'horn',who,target,slot,shots:[e1],needReload:false,over:false};
+  if(!M.over&&M.chamber.length>0){
+    const e2=mpFire(M,who,who);ev.shots.push(e2);
+  }
+  if(M.over){ev.over=true;return ev;}
+  const last=ev.shots[ev.shots.length-1];
+  if(last.shell==='blank'&&last.target===who&&M.alive[who]&&ev.shots.length===2)M.turn=who;
+  else mpPassTurn(M,who,ev);
+  if(M.chamber.length===0)ev.needReload=true;
+  return ev;
+}
+/* 干擾器：摧毀指定玩家桌上的一件道具 */
+function mpJam(M,who,slot,tseat,tslot){
+  const victim=M.inv[tseat][tslot];
+  M.inv[who][slot]=null;M.inv[tseat][tslot]=null;
+  return {type:'jam',item:'jammer',who,slot,tseat,tslot,victim,needReload:false,over:false};
+}
+const mpJamTargets=(M,who)=>{const r=[];for(const s of mpAliveList(M)){if(s===who)continue;M.inv[s].forEach((t,i)=>{if(t)r.push({seat:s,slot:i});});}return r;};
 /* 可作為手銬目標的玩家 */
 const mpCuffTargets=(M,who)=>mpAliveList(M).filter(s=>s!==who&&!M.cuffed[s]);
 function mpCanUse(M,who,type){
   if(type==='saw')return !M.sawed;
   if(type==='cuffs')return mpCuffTargets(M,who).length>0;
   if(type==='adrenaline')return mpStealable(M,who).length>0;
+  if(type==='horn')return mpChLen(M)>=2;
+  if(type==='jammer')return mpJamTargets(M,who).length>0;
   return true;
 }
 function mpStealable(M,who){
   const r=[];
   for(const s of mpAliveList(M)){
     if(s===who)continue;
-    M.inv[s].forEach((t,i)=>{if(t&&t!=='adrenaline'&&mpCanUse(M,who,t)&&(t!=='cuffs'||!M.cuffed[s]||mpCuffTargets(M,who).length))r.push({seat:s,slot:i});});
+    M.inv[s].forEach((t,i)=>{if(t&&!NOSTEAL.includes(t)&&mpCanUse(M,who,t)&&(t!=='cuffs'||!M.cuffed[s]||mpCuffTargets(M,who).length))r.push({seat:s,slot:i});});
   }
   return r;
 }
@@ -2318,12 +2465,8 @@ function mpApplyItem(M,who,type,target){
       M.chamber[0]=flip(M.chamber[0]);
       for(const k of M.kn)if(k[0])k[0]=flip(k[0]);
       break;
-    case 'medicine':
-      if(Math.random()<.5){
-        if(M.sudden[who])ev.none='sudden';
-        else{M.hp[who]=Math.min(M.maxHp,M.hp[who]+2);ev.healed=2;}
-        ev.ok=true;
-      }else{ev.ok=false;ev.dmg=1;mpDamage(M,who,1,ev);}
+    case 'extra':
+      M.chamber.push('live');M.left.live++;for(const k of M.kn)k.push(null);ev.added=M.chamber.length;
       break;
   }
   if(M.over)ev.over=true;
@@ -2367,18 +2510,31 @@ function mpDecide(M,who){
   // 最適合攻擊的對象：能一槍擊倒者優先，其次血量最少
   const aim=()=>{let b=foes[0],bs=-1;for(const f of foes){const sc=(M.hp[f]<=dmg?10:0)+(5-M.hp[f])+(M.cuffed[f]?-1:0)+Math.random()*.5;if(sc>bs){bs=sc;b=f;}}return b;};
   if(M.hp[who]<M.maxHp&&!M.sudden[who]&&has('cigarette')>=0)return {t:'item',slot:has('cigarette')};
-  if(!M.sudden[who]&&M.hp[who]<=M.maxHp-2&&M.hp[who]>=2&&has('medicine')>=0&&Math.random()<.6)return {t:'item',slot:has('medicine')};
   if(!cur&&has('magnifier')>=0)return {t:'item',slot:has('magnifier')};
   if(!cur&&has('phone')>=0&&M.chamber.length>1&&Math.random()<.8)return {t:'item',slot:has('phone')};
   if(has('adrenaline')>=0){
     const st=mpStealable(M,who);
     if(st.length&&Math.random()<.8){
-      const pri=['magnifier','saw','cigarette','cuffs','inverter','phone','beer','medicine'];
+      const pri=['magnifier','saw','cigarette','cuffs','extra','inverter','phone','beer'];
       let best=st[0],bs=99;for(const o of st){const r=pri.indexOf(M.inv[o.seat][o.slot]);if(r<bs){bs=r;best=o;}}
       return {t:'adr',slot:has('adrenaline'),tseat:best.seat,tslot:best.slot};
     }
   }
   const tgt=aim();
+  // 干擾器：摧毀對手最有威脅的道具
+  if(has('jammer')>=0&&Math.random()<.65){
+    const jt=mpJamTargets(M,who);
+    if(jt.length){
+      const pri=['adrenaline','horn','saw','cuffs','magnifier','inverter','extra','cigarette','phone','beer','jammer'];
+      let best=jt[0],bs=99;for(const o of jt){const r=pri.indexOf(M.inv[o.seat][o.slot]);if(r<bs){bs=r;best=o;}}
+      return {t:'jam',slot:has('jammer'),tseat:best.seat,tslot:best.slot};
+    }
+  }
+  if(has('extra')>=0&&M.chamber.length<8&&Math.random()<.5)return {t:'item',slot:has('extra')};
+  if(has('horn')>=0&&M.chamber.length>=2&&cur==='live'&&(M.hp[who]>=2||M.sudden[who]===false&&M.hp[who]>1)){
+    const k2=M.kn[who][1],p2=(L-1)/Math.max(1,M.chamber.length-1);
+    if(k2==='blank'||(!k2&&p2<=.34))return {t:'horn',slot:has('horn'),target:tgt};
+  }
   if(cur==='live'){
     if(M.hp[tgt]>=2&&!M.sawed&&has('saw')>=0)return {t:'item',slot:has('saw')};
     const ct=mpCuffTargets(M,who);
@@ -2806,7 +2962,7 @@ function fit(){
   if(DEV.rotate&&G.state==='game'&&!G.paused)togglePause(true);
   $('bX').textContent=DEV.touch?'放下霰彈槍':'放下霰彈槍（Esc）';
   $('pauseBtn').textContent=DEV.touch?'選單':'選單（P）';
-  if(G.state==='game'&&typeof G.canInput!=='undefined'&&!G.aim&&G.adr==null&&G.canInput)setHint(hintMain());
+  if(G.state==='game'&&typeof G.canInput!=='undefined'&&!G.aim&&G.adr==null&&G.jam==null&&G.canInput)setHint(hintMain());
 }
 addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,200));
 if(window.visualViewport)visualViewport.addEventListener('resize',fit);
@@ -2955,12 +3111,12 @@ cv.addEventListener('pointermove',e=>{
   if(G.state!=='game')return;
   const m=mpos(e);const h=hitTest(m.x,m.y);if(h&&(!A.hover||A.hover.k!==h.k||A.hover.i!==h.i||A.hover.side!==h.side)&&e.pointerType!=='touch')sfx('hover');A.hover=h;if(e.pointerType!=='touch'){A.px=(m.x-.5)*2;A.py=(m.y-.5)*2;}
   showTip(h);
-  if(MPS){cv.style.cursor=(h&&(h.k==='slot'||h.k==='gun'||h.k==='seat'||(G.canInput&&G.aim)))?'pointer':'default';mpHoverAim(h);A.hi=G.adr!=null&&MPS?{side:MPS.me,i:G.adr}:(G.cuffPick!=null?{side:MPS.me,i:G.cuffPick}:null);return;}
+  if(MPS){cv.style.cursor=(h&&(h.k==='slot'||h.k==='gun'||h.k==='seat'||(G.canInput&&G.aim)))?'pointer':'default';mpHoverAim(h);A.hi=G.adr!=null&&MPS?{side:MPS.me,i:G.adr}:(G.cuffPick!=null?{side:MPS.me,i:G.cuffPick}:(G.hornPick!=null?{side:MPS.me,i:G.hornPick}:(G.jamPick!=null?{side:MPS.me,i:G.jamPick}:null)));return;}
   cv.style.cursor=(h&&(h.k==='slot'||h.k==='gun'||h.k==='defib'||(G.canInput&&G.aim)))?'pointer':'default';
   if(G.canInput&&G.aim){
     if(h&&h.k==='dealer')setGun('pAimD');else if(h&&h.k==='self')setGun('pAimS');else setGun('pHeld');
   }
-  A.hi=G.adr!=null?{side:'p',i:G.adr}:null;
+  A.hi=G.adr!=null?{side:'p',i:G.adr}:(G.jam!=null?{side:'p',i:G.jam}:null);
 });
 cv.addEventListener('pointerleave',()=>{A.hover=null;$('tip').style.display='none';});
 function handleClick(h,touch){
@@ -2974,6 +3130,13 @@ function handleClick(h,touch){
     }
     G.adr=null;A.hi=null;setHint(hintMain());hush();return;
   }
+  if(G.jam!=null){
+    if(h&&h.k==='slot'&&h.side==='d'){
+      if(S.inv.d[h.i]){const slot=G.jam;G.jam=null;A.hi=null;submit({t:'jam',slot,target:h.i});return;}
+      sfx('bad');return;
+    }
+    G.jam=null;A.hi=null;setHint(hintMain());hush();return;
+  }
   if(!h)return;
   if(h.k==='gun'){setAim(true);sfx('pump');return;}
   if(h.k==='dealer'&&G.aim){submit({t:'shoot',target:'d'});return;}
@@ -2983,7 +3146,7 @@ function handleClick(h,touch){
     if(G.aim)setAim(false);
     let ok=true,why='';
     if(it==='adrenaline'){if(!stealable(S,'p').length){ok=false;why='莊家桌上沒有可以偷的道具';}}
-    else if(!canUse(S,'p',it)){ok=false;why=it==='saw'?'槍管已經鋸短了':'莊家已經被銬住了';}
+    else if(!canUse(S,'p',it)){ok=false;why=it==='saw'?'槍管已經鋸短了':it==='horn'?'彈匣至少要有 2 發子彈':it==='jammer'?'莊家桌上沒有道具可以干擾':'莊家已經被銬住了';}
     openItemPrev('p',h.i,it,ok,why,()=>useSlotSingle(h.i));
   }
 }
@@ -2991,6 +3154,9 @@ function useSlotSingle(i){
   const it=S.inv.p[i];if(!it||!G.canInput)return;
   if(it==='adrenaline'){
     G.adr=i;A.hi={side:'p',i};say(DEV.touch?'選擇要偷的莊家道具':'選擇要偷的莊家道具（Esc 取消，或按 1–8）');setHint('點擊莊家桌上的道具');sfx('click');return;
+  }
+  if(it==='jammer'){
+    G.jam=i;A.hi={side:'p',i};say(DEV.touch?'選擇要干擾的莊家道具':'選擇要干擾的莊家道具（Esc 取消，或按 1–8）');setHint('點擊莊家桌上的道具');sfx('click');return;
   }
   submit({t:'item',slot:i});
 }
@@ -3048,7 +3214,7 @@ $('bD').onmouseleave=()=>{if(G.aim)setGun('pHeld');};$('bS').onmouseleave=()=>{i
 addEventListener('keydown',e=>{
   if(G.prev){if(e.key==='Escape')closeItemPrev();else if(e.key==='Enter'||e.key===' ')confirmItemPrev();e.preventDefault();return;}
   if(MPS&&G.state==='game'&&!$('manual').classList.contains('on')&&!$('opt').classList.contains('on')){
-    if(e.key==='Escape'){if(G.adr!=null||G.cuffPick!=null)mpCancelPick();else if(G.aim)mpSetAim(false);else togglePause(!$('pause').classList.contains('on'));return;}
+    if(e.key==='Escape'){if(G.adr!=null||G.cuffPick!=null||G.hornPick!=null||G.jamPick!=null)mpCancelPick();else if(G.aim)mpSetAim(false);else togglePause(!$('pause').classList.contains('on'));return;}
     if(e.key==='p'||e.key==='P'){togglePause(!$('pause').classList.contains('on'));return;}
     if($('pause').classList.contains('on'))return;
     if(mpKey(e))e.preventDefault();return;
@@ -3057,7 +3223,7 @@ addEventListener('keydown',e=>{
   if((e.key==='h'||e.key==='H')&&G.state==='game'&&!G.paused&&!$('manual').classList.contains('on')&&!$('opt').classList.contains('on')){openHpZoom();return;}
   if(e.key==='Escape'){
     if(G.state==='game'&&!G.paused){
-      if(G.adr!=null){G.adr=null;A.hi=null;hush();setHint(hintMain());}
+      if(G.adr!=null||G.jam!=null){G.adr=null;G.jam=null;A.hi=null;hush();setHint(hintMain());}
       else if(G.aim)setAim(false);
       else togglePause(true);
     }else if(G.paused&&$('pause').classList.contains('on'))togglePause(false);
@@ -3065,12 +3231,12 @@ addEventListener('keydown',e=>{
   }
   if((e.key==='p'||e.key==='P')&&G.state==='game'&&!$('manual').classList.contains('on')&&!$('opt').classList.contains('on'))togglePause(!G.paused);
   if(G.state==='game'&&!G.paused&&G.canInput&&/^[1-8]$/.test(e.key)&&!$('manual').classList.contains('on')&&!$('opt').classList.contains('on')){
-    const i=+e.key-1;handleClick(G.adr!=null?{k:'slot',side:'d',i}:{k:'slot',side:'p',i},false);return;
+    const i=+e.key-1;handleClick(G.adr!=null||G.jam!=null?{k:'slot',side:'d',i}:{k:'slot',side:'p',i},false);return;
   }
   if(G.canInput&&G.aim){
     if(e.key==='ArrowUp'||e.key==='w'||e.key==='W')submit({t:'shoot',target:'d'});
     if(e.key==='ArrowDown'||e.key==='s'||e.key==='S')submit({t:'shoot',target:'p'});
-  }else if(G.canInput&&(e.key===' '||e.key==='Enter')&&G.adr==null){setAim(true);sfx('pump');}
+  }else if(G.canInput&&(e.key===' '||e.key==='Enter')&&G.adr==null&&G.jam==null){setAim(true);sfx('pump');}
 });
 function togglePause(v){sfx(v?'pause':'resume');if(MPS){scr(v?'pause':null);$('pauseBtn').style.display=(!v&&G.state==='game')?'block':'none';return;}G.paused=v;scr(v?'pause':null);$('pauseBtn').style.display=(!v&&G.state==='game')?'block':'none';}
 
@@ -3114,6 +3280,70 @@ async function reloadAnim(info){
   updateHud();
 }
 /* ---------- 開槍 ---------- */
+/* 單發子彈的演出（開火特效、判定字幕、傷害表現） */
+async function shotFx(ev,mz,rear,noteO){
+  const who=ev.who,target=ev.target,selfShot=who===target;
+  const whoN=who==='p'?'你':'莊家';
+  const tarN=selfShot?'自己':(target==='p'?'你':'莊家');
+  if(ev.shell==='live'){
+    sfx('shot');A.flash=1;A.shake=16;flashMuzzle(rear);setTimeout(()=>sfx('gore'),90);
+    if(target==='p'){splatter('p');A.kick=1;setTimeout(()=>sfx('ring'),900);}
+    else{A.dHit=1;splatter('d');setCracks();}
+    const dmg=ev.dmg||1;
+    verdict({who:whoN,tar:tarN,word:'實彈',cls:'live',note:`${target==='p'?'你':'莊家'}損失 ${dmg} 點生命`,tag:ev.saw?'手鋸強化　傷害 ×2':''},2600);
+  }else{
+    sfx('blank');A.flash=.2;A.shake=3;puff(mz,10,[.6,.6,.6],.8,.07,1.2);
+    verdict({who:whoN,tar:tarN,word:'空包彈',cls:'blank',note:noteO||(selfShot?`${whoN}繼續行動`:'回合結束'),tag:ev.saw?'手鋸已耗盡':''},2200);
+  }
+  ejectFx(ev.shell);
+  await sleep(ev.shell==='live'&&target==='p'?2300:(ev.shell==='live'?1900:1500));
+  hideVerdict();
+  A.blackT=0;A.dHit=0;
+  if(ev.sudden){sfx('defib');A.flash=.8;say(ev.sudden==='p'?'電擊器被切斷了……你進入瀕死狀態':'莊家進入瀕死狀態！',2600);await sleep(1400);}
+}
+/* 喇叭槍：槍管一分為二，連開兩發（第一發打對手、第二發打自己） */
+async function doHorn(who,slot){
+  closeHpZoom();
+  const you=who==='p',nm=you?'你':'莊家';
+  if(!you)handReach('d',slot);
+  A.hi={side:who,i:slot};
+  sfx('item');say(`${nm}使用了喇叭槍`,1400);await sleep(700);A.hi=null;
+  if(!you)handsIdle();
+  A.hornOn=1;sfx('horn');A.shake=5;
+  say('槍管一分為二——一支指向'+(you?'莊家':'你')+'，一支指向'+(you?'自己':'莊家自己'),2400);
+  if(you)setGun('pAimD');else{setGun('dHeldP');handsHoldGun();A.grin=1;}
+  await sleep(1900+(!you&&S.hp.p===1?500:0));
+  const ev=useHorn(S,who,slot);
+  const e1=ev.shots[0];
+  await shotFx(e1,muzzlePos(),false,ev.shots[1]||ev.over?null:'喇叭槍：接著第二發');
+  if(!ev.shots[1]){A.hornOn=0;setGun('table');handsIdle();return ev;}
+  say(you?'第二發：槍口轉向了你自己……':'第二發：莊家的槍口轉向了他自己……',1800);await sleep(1300);
+  await shotFx(ev.shots[1],rearTip(),true,ev.shots[1].shell==='blank'?(ev.over?null:nm+'繼續行動'):null);
+  A.hornOn=0;
+  if(ev.over){setGun('table');handsIdle();return ev;}
+  setGun('table');handsIdle();A.grin=0;
+  if(ev.skip){sfx('cuff');say(ev.skip==='d'?'手銬生效：莊家跳過回合':'手銬生效：你跳過回合',2400);await sleep(1300);}
+  await sleep(500);
+  if(ev.needReload)await doReload();
+  return ev;
+}
+/* 干擾器：摧毀對方一件道具 */
+async function doJam(who,slot,tslot){
+  closeHpZoom();
+  const o=other(who),you=who==='p';
+  if(!you)handReach('d',slot);
+  A.hi={side:who,i:slot};
+  sfx('item');say(`${you?'你':'莊家'}使用了干擾器`,1500);await sleep(800);A.hi=null;
+  if(!you)handsIdle();
+  const key=''+o+tslot;A.hi={side:o,i:tslot};
+  sfx('zap');zapFx(slotWorld(o,tslot),key);A.flash=.4;A.shake=3;
+  await sleep(600);
+  const ev=useJammer(S,who,slot,tslot);
+  A.hi=null;
+  say(`${ITEM_SAY[ev.victim]}被干擾器摧毀了！`,2200);await sleep(1300);
+  updateHud();
+  return ev;
+}
 async function doShoot(who,target){
   closeHpZoom();
   const name=who==='p'?'你':'莊家';
@@ -3129,24 +3359,7 @@ async function doShoot(who,target){
     await sleep(600);
   }
   const ev=shoot(S,who,target);
-  const mz=muzzlePos();
-  const whoN=who==='p'?'你':'莊家';
-  const tarN=selfShot?'自己':(target==='p'?'你':'莊家');
-  if(ev.shell==='live'){
-    sfx('shot');A.flash=1;A.shake=16;flashMuzzle();setTimeout(()=>sfx('gore'),90);
-    if(target==='p'){splatter('p');A.kick=1;setTimeout(()=>sfx('ring'),900);}
-    else{A.dHit=1;splatter('d');setCracks();}
-    const dmg=ev.dmg||1;
-    verdict({who:whoN,tar:tarN,word:'實彈',cls:'live',note:`${target==='p'?'你':'莊家'}損失 ${dmg} 點生命`,tag:ev.saw?'手鋸強化　傷害 ×2':''},2600);
-  }else{
-    sfx('blank');A.flash=.2;A.shake=3;puff(mz,10,[.6,.6,.6],.8,.07,1.2);
-    verdict({who:whoN,tar:tarN,word:'空包彈',cls:'blank',note:selfShot?`${whoN}繼續行動`:'回合結束',tag:ev.saw?'手鋸已耗盡':''},2200);
-  }
-  ejectFx(ev.shell);
-  await sleep(ev.shell==='live'&&target==='p'?2300:(ev.shell==='live'?1900:1500));
-  hideVerdict();
-  A.blackT=0;A.dHit=0;
-  if(ev.sudden){sfx('defib');A.flash=.8;say(ev.sudden==='p'?'電擊器被切斷了……你進入瀕死狀態':'莊家進入瀕死狀態！',2600);await sleep(1400);}
+  await shotFx(ev,muzzlePos());
   if(ev.over){setGun('table');handsIdle();return ev;}
   setGun('table');handsIdle();A.grin=0;
   if(ev.skip){sfx('cuff');say(ev.skip==='d'?'手銬生效：莊家跳過回合':'手銬生效：你跳過回合',2400);await sleep(1300);}
@@ -3155,7 +3368,7 @@ async function doShoot(who,target){
   return ev;
 }
 /* ---------- 道具 ---------- */
-const ITEM_SAY={magnifier:'放大鏡',beer:'啤酒',saw:'手鋸',cuffs:'手銬',cigarette:'香菸',phone:'拋棄式手機',inverter:'逆轉器',adrenaline:'腎上腺素',medicine:'過期藥物'};
+const ITEM_SAY={magnifier:'放大鏡',beer:'退彈器',saw:'手鋸',cuffs:'手銬',cigarette:'橘子汽水',phone:'聽診器',inverter:'U形磁鐵',adrenaline:'腎上腺素',horn:'喇叭槍',jammer:'干擾器',extra:'額外子彈'};
 async function itemEffects(who,ev){
   const you=who==='p',nm=you?'你':'莊家';
   switch(ev.item){
@@ -3165,25 +3378,25 @@ async function itemEffects(who,ev){
       else say('莊家端詳著槍膛，露出詭異的笑',1800);
       await sleep(1700);break;
     case 'beer':
-      sfx('beer');ejectFx(ev.shell);reveal('退出：'+(ev.shell==='live'?'實彈':'空包彈'),ev.shell,1500);
-      say(`${nm}退出了一發${ev.shell==='live'?'實彈':'空包彈'}`,2000);await sleep(1600);break;
+      sfx('beer');ejectFx(ev.shell);reveal('退彈：'+(ev.shell==='live'?'實彈':'空包彈'),ev.shell,1500);
+      say(`${nm}用退彈器退出了一發${ev.shell==='live'?'實彈':'空包彈'}`,2000);await sleep(1600);break;
     case 'saw':sfx('pump');A.shake=4;say(`${nm}鋸短了槍管——下一發實彈傷害 ×2`,2200);await sleep(1500);break;
     case 'cuffs':sfx('cuff');say(`${nm}用手銬銬住了${you?'莊家':'你'}`,2200);await sleep(1400);break;
     case 'cigarette':
-      if(ev.healed){sfx('heal');say(`${nm}抽了一口菸，回復 1 點生命`,2000);}
-      else{say(`${nm}抽了一口菸……但毫無作用`,2000);sfx('bad');}
+      sfx('soda');
+      if(ev.healed){setTimeout(()=>sfx('heal'),350);say(`${nm}灌下橘子汽水，回復 1 點生命`,2000);}
+      else{say(`${nm}灌下橘子汽水……但毫無作用`,2000);setTimeout(()=>sfx('bad'),350);}
       await sleep(1400);break;
     case 'phone':
-      sfx('phone');
-      if(ev.none){say(`${nm}撥了電話……電話那頭什麼也沒說`,2200);}
-      else if(you){reveal(`第 ${ev.idx+1} 發<br>${ev.shell==='live'?'實彈':'空包彈'}`,ev.shell,2000);say(`手機告訴你：第 ${ev.idx+1} 發是${ev.shell==='live'?'實彈':'空包彈'}`,2400);}
-      else say('莊家接了一通神祕電話……',2200);
+      sfx('scope');
+      if(ev.none){say(`${nm}把聽診器貼上彈匣……什麼也聽不到`,2200);}
+      else if(you){reveal(`第 ${ev.idx+1} 發<br>${ev.shell==='live'?'實彈':'空包彈'}`,ev.shell,2000);say(`聽診器告訴你：第 ${ev.idx+1} 發是${ev.shell==='live'?'實彈':'空包彈'}`,2400);}
+      else say('莊家把聽診器貼在彈匣上，專注地聆聽……',2200);
       await sleep(1900);break;
-    case 'inverter':sfx('invert');A.flash=.3;say(`${nm}反轉了槍膛內的子彈`,2200);await sleep(1400);break;
-    case 'medicine':
-      if(ev.ok){sfx('heal');say(ev.healed?`${nm}吞下藥物——回復 2 點生命！`:`${nm}吞下藥物，但毫無作用`,2400);}
-      else{sfx('bad');A.flash=.6;A.shake=8;if(you)A.black=.6;say(`${nm}吞下藥物——失去 1 點生命！`,2400);}
-      await sleep(1500);A.black=0;break;
+    case 'inverter':sfx('magnet');A.flash=.3;say(`${nm}用U形磁鐵反轉了槍膛內的子彈`,2200);await sleep(1400);break;
+    case 'extra':
+      sfx('bullet');A.flash=.15;puff([0,TABLE_Y+.2,0],8,[.8,.3,.25],.5,.06,.9);
+      say(`${nm}在彈匣最後塞入了一顆實彈（共 ${ev.added} 發）`,2400);await sleep(1500);break;
   }
 }
 async function doItem(who,slot){
@@ -3226,6 +3439,8 @@ async function playerTurn(){
   setHint(hintMain());updateHud();
   const act=await waitInput();
   if(act.t==='shoot')await doShoot('p',act.target);
+  else if(act.t==='item'&&S.inv.p[act.slot]==='horn')await doHorn('p',act.slot);
+  else if(act.t==='jam')await doJam('p',act.slot,act.target);
   else if(act.t==='item')await doItem('p',act.slot);
   else await doAdr('p',act.slot,act.target);
 }
@@ -3235,6 +3450,8 @@ async function dealerTurn(){
   await sleep(spun?1250:900);
   const a=dealerDecide(S);
   if(a.t==='shoot')await doShoot('d',a.target);
+  else if(a.t==='item'&&S.inv.d[a.slot]==='horn')await doHorn('d',a.slot);
+  else if(a.t==='jam')await doJam('d',a.slot,a.target);
   else if(a.t==='item')await doItem('d',a.slot);
   else await doAdr('d',a.slot,a.target);
 }
@@ -3299,7 +3516,7 @@ function endScreen(title,kind,bank){
   scr('end');
 }
 async function startMatch(mode){
-  G.token++;G.paused=false;G.canInput=false;G.aim=false;G.adr=null;
+  G.token++;G.paused=false;G.canInput=false;G.aim=false;G.adr=null;G.jam=null;
   S=newMatch(mode);G.state='menu';
   scr(null);
   try{
@@ -3316,7 +3533,7 @@ async function startMatch(mode){
 function quitToMenu(){
   if(MP.role!=='none')mpLeave(false);
   if(MPS){mpSceneOff();MV=null;}
-  G.token++;G.paused=false;G.canInput=false;G.aim=false;G.adr=null;
+  G.token++;G.paused=false;G.canInput=false;G.aim=false;G.adr=null;G.jam=null;
   if(G.reject){try{G.reject(new Abort());}catch(e){}}
   G.state='menu';S=null;AU.low=false;
   $('aimbar').style.display='none';$('pauseBtn').style.display='none';$('tip').style.display='none';$('reveal').style.display='none';hush();hideVerdict();closeHpZoom();$('goreWrap').classList.remove('on');setHint('');updateTag();updateHud();
@@ -3699,7 +3916,12 @@ async function mpEmit(ev){
 function mpLegal(M,seat,a){
   if(!a||M.over||M.turn!==seat||!M.alive[seat])return false;
   if(a.t==='shoot')return Number.isInteger(a.target)&&M.alive[a.target]&&a.target>=0&&a.target<M.n;
-  if(a.t==='item'){const it=M.inv[seat][a.slot];return !!it&&mpCanUse(M,seat,it);}
+  if(a.t==='item'){const it=M.inv[seat][a.slot];return !!it&&it!=='horn'&&it!=='jammer'&&mpCanUse(M,seat,it);}
+  if(a.t==='horn')return M.inv[seat][a.slot]==='horn'&&mpCanUse(M,seat,'horn')&&Number.isInteger(a.target)&&a.target!==seat&&M.alive[a.target];
+  if(a.t==='jam'){
+    if(M.inv[seat][a.slot]!=='jammer')return false;
+    return Number.isInteger(a.tseat)&&a.tseat!==seat&&!!M.alive[a.tseat]&&!!(M.inv[a.tseat]&&M.inv[a.tseat][a.tslot]);
+  }
   if(a.t==='adr'){
     if(M.inv[seat][a.slot]!=='adrenaline')return false;
     if(!(Number.isInteger(a.tseat)&&a.tseat!==seat&&M.alive[a.tseat]))return false;
@@ -3726,6 +3948,8 @@ async function mpHostLoop(M){
       if(!mpLegal(M,seat,act)){if(M.pl[seat].ai)act={t:'shoot',target:mpAliveList(M).find(s=>s!==seat)};if(!mpLegal(M,seat,act))continue;}
       let ev;
       if(act.t==='shoot')ev=mpShoot(M,seat,act.target);
+      else if(act.t==='horn')ev=mpHorn(M,seat,act.slot,act.target);
+      else if(act.t==='jam')ev=mpJam(M,seat,act.slot,act.tseat,act.tslot);
       else if(act.t==='item')ev=mpUseItem(M,seat,act.slot,act.target);
       else ev=mpUseAdr(M,seat,act.slot,act.tseat,act.tslot);
       await mpEmit(ev);
@@ -3785,6 +4009,8 @@ async function mpPlay(ev,V){
       await sleep(spun?1150:300);return;}
     case 'shot':await mpShotAnim(ev,V);return;
     case 'item':await mpItemAnim(ev,V);return;
+    case 'horn':await mpHornAnim(ev,V);return;
+    case 'jam':await mpJamAnim(ev,V);return;
     case 'roundEnd':{
       mpApply(V);A.hi=null;
       if(ev.winner>=0){
@@ -3827,6 +4053,52 @@ async function mpShotAnim(ev,V){
   if(ev.skips&&ev.skips.length){sfx('cuff');say(`手銬生效：${ev.skips.map(whoN).join('、')}跳過回合`,2400);await sleep(1300);}
   await sleep(400);
 }
+/* 喇叭槍的單發演出 */
+async function mpHornShot(ev,rear,noteO){
+  const me=MPS.me,target=ev.target,self=ev.who===target,wn=whoN(ev.who),tn=self?'自己':whoN(target);
+  const mz=rear?rearTip():muzzlePos();
+  if(ev.shell==='live'){
+    sfx('shot');A.flash=1;A.shake=16;flashMuzzle(rear);setTimeout(()=>sfx('gore'),90);
+    mpSplatter(target);
+    if(target===me){A.kick=1;setTimeout(()=>sfx('ring'),900);}
+    verdict({who:wn,tar:tn,word:'實彈',cls:'live',note:`${whoN(target)}損失 ${ev.dmg} 點生命`,tag:ev.saw?'手鋸強化　傷害 ×2':''},2600);
+  }else{
+    sfx('blank');A.flash=.2;A.shake=3;puff(mz,10,[.6,.6,.6],.8,.07,1.2);
+    verdict({who:wn,tar:tn,word:'空包彈',cls:'blank',note:noteO||(self?`${wn}繼續行動`:'回合結束'),tag:ev.saw?'手鋸已耗盡':''},2200);
+  }
+  ejectFx(ev.shell);
+  await sleep(ev.shell==='live'&&target===me?2300:(ev.shell==='live'?1900:1500));
+  hideVerdict();A.blackT=0;
+  await mpAfterHit(ev);
+}
+async function mpHornAnim(ev,V){
+  const me=MPS.me,who=ev.who,wn=whoN(who),tn=whoN(ev.target);
+  A.hi={side:who,i:ev.slot};sfx('item');say(`${wn}使用了喇叭槍`,1400);await sleep(700);A.hi=null;
+  A.hornOn=1;sfx('horn');A.shake=5;
+  say(`槍管一分為二——一支指向${tn}，一支指向${who===me?'你自己':wn+'自己'}`,2600);
+  mpGunAim(who,ev.target);
+  await sleep(who===me?1500:2100);
+  const e1=ev.shots[0],e2=ev.shots[1];
+  await mpHornShot(e1,false,e2?'喇叭槍：接著第二發':null);
+  if(e2&&!(e1.dead&&e1.dead.includes(who))){
+    say(`第二發：槍口轉向${who===me?'你自己':wn+'自己'}……`,1800);await sleep(1300);
+    await mpHornShot(e2,true,null);
+  }
+  A.hornOn=0;mpApply(V);
+  setGun('table');
+  if(ev.skips&&ev.skips.length){sfx('cuff');say(`手銬生效：${ev.skips.map(whoN).join('、')}跳過回合`,2400);await sleep(1300);}
+  await sleep(400);
+}
+/* 干擾器：電光閃過，道具消失 */
+async function mpJamAnim(ev,V){
+  const who=ev.who,wn=whoN(who);
+  A.hi={side:who,i:ev.slot};sfx('item');say(`${wn}使用了干擾器`,1500);await sleep(800);
+  A.hi={side:ev.tseat,i:ev.tslot};
+  sfx('zap');zapFx(MPS.slot(ev.tseat,ev.tslot),''+ev.tseat+ev.tslot);A.flash=.4;A.shake=3;
+  await sleep(600);
+  A.hi=null;mpApply(V);
+  say(`${whoN(ev.tseat)}的${ITEM_SAY[ev.victim]}被干擾器摧毀了！`,2400);await sleep(1400);
+}
 async function mpAfterHit(ev){
   const me=MPS.me;
   for(const s of ev.sudden||[]){sfx('defib');A.flash=.8;say(s===me?'電擊器被切斷了……你進入瀕死狀態':`${nmOf(s)} 進入瀕死狀態！`,2400);await sleep(1300);}
@@ -3862,28 +4134,28 @@ async function mpItemFx(ev,wn){
       else say(`${wn}端詳著槍膛……`,1800);
       await sleep(1700);break;
     case 'beer':
-      sfx('beer');ejectFx(ev.shell);reveal('退出：'+(ev.shell==='live'?'實彈':'空包彈'),ev.shell,1500);
-      say(`${wn}退出了一發${ev.shell==='live'?'實彈':'空包彈'}`,2000);await sleep(1600);break;
+      sfx('beer');ejectFx(ev.shell);reveal('退彈：'+(ev.shell==='live'?'實彈':'空包彈'),ev.shell,1500);
+      say(`${wn}用退彈器退出了一發${ev.shell==='live'?'實彈':'空包彈'}`,2000);await sleep(1600);break;
     case 'saw':sfx('pump');A.shake=4;say(`${wn}鋸短了槍管（實彈 ×2）`,2200);await sleep(1500);break;
     case 'cuffs':
       if(ev.target==null){say(`${wn}想銬人，但沒有可銬的對象`,1800);sfx('bad');}
       else{sfx('cuff');say(`${wn}用手銬銬住了${whoN(ev.target)}`,2200);}
       await sleep(1400);break;
     case 'cigarette':
-      if(ev.healed){sfx('heal');say(`${wn}抽了一口菸，回復 1 點生命`,2000);}
-      else{say(`${wn}抽了一口菸……但毫無作用`,2000);sfx('bad');}
+      sfx('soda');
+      if(ev.healed){setTimeout(()=>sfx('heal'),350);say(`${wn}灌下橘子汽水，回復 1 點生命`,2000);}
+      else{say(`${wn}灌下橘子汽水……但毫無作用`,2000);setTimeout(()=>sfx('bad'),350);}
       await sleep(1400);break;
     case 'phone':
-      sfx('phone');
-      if(ev.none){say(`${wn}撥了電話……電話那頭什麼也沒說`,2200);}
-      else if(you){reveal(`第 ${ev.idx+1} 發<br>${ev.shell==='live'?'實彈':'空包彈'}`,ev.shell,2000);say(`手機告訴你：第 ${ev.idx+1} 發是${ev.shell==='live'?'實彈':'空包彈'}`,2400);}
-      else say(`${wn}接了一通神祕電話……`,2200);
+      sfx('scope');
+      if(ev.none){say(`${wn}把聽診器貼上彈匣……什麼也聽不到`,2200);}
+      else if(you){reveal(`第 ${ev.idx+1} 發<br>${ev.shell==='live'?'實彈':'空包彈'}`,ev.shell,2000);say(`聽診器告訴你：第 ${ev.idx+1} 發是${ev.shell==='live'?'實彈':'空包彈'}`,2400);}
+      else say(`${wn}把聽診器貼在彈匣上，專注地聆聽……`,2200);
       await sleep(1900);break;
-    case 'inverter':sfx('invert');A.flash=.3;say(`${wn}反轉了槍膛內的子彈`,2200);await sleep(1400);break;
-    case 'medicine':
-      if(ev.ok){sfx('heal');say(ev.healed?`${wn}吞下藥物——回復 2 點生命！`:`${wn}吞下藥物，但毫無作用`,2400);}
-      else{sfx('bad');A.flash=.6;A.shake=8;say(`${wn}吞下藥物——失去 1 點生命！`,2400);}
-      await sleep(1500);break;
+    case 'inverter':sfx('magnet');A.flash=.3;say(`${wn}用U形磁鐵反轉了槍膛內的子彈`,2200);await sleep(1400);break;
+    case 'extra':
+      sfx('bullet');A.flash=.15;puff([0,TABLE_Y+.2,0],8,[.8,.3,.25],.5,.06,.9);
+      say(`${wn}在彈匣最後塞入了一顆實彈（共 ${ev.added} 發）`,2400);await sleep(1500);break;
   }
 }
 /* ---------- 結算 ---------- */
@@ -3909,7 +4181,7 @@ function mpBackLobby(){
 }
 /* ===================== 本機輸入 ===================== */
 function mpAskLocal(){
-  return new Promise((res,rej)=>{G.resolve=res;G.reject=rej;G.canInput=true;G.aim=false;G.adr=null;G.cuffPick=null;});
+  return new Promise((res,rej)=>{G.resolve=res;G.reject=rej;G.canInput=true;G.aim=false;G.adr=null;G.cuffPick=null;G.hornPick=null;G.jamPick=null;});
 }
 function mpHideBar(){$('aimMP').style.display='none';document.body.classList.remove('bar');}
 function mpShowBar(mode){
@@ -3917,11 +4189,11 @@ function mpShowBar(mode){
   const opps=mode==='cuff'?mpCuffTargets(V,me):mpAliveList(V).filter(k=>k!==me);
   for(const k of opps){
     const b=document.createElement('button');b.className='btn tgt';b.style.setProperty('--c',MP_COL[k]);
-    b.textContent=mode==='cuff'?`⛓ 銬住 ${V.pl[k].name}`:(DEV.portrait?`▲ ${V.pl[k].name}`:`▲ 對 ${V.pl[k].name} 開火`);
+    b.textContent=mode==='cuff'?`⛓ 銬住 ${V.pl[k].name}`:mode==='horn'?`🎺 指向 ${V.pl[k].name}`:(DEV.portrait?`▲ ${V.pl[k].name}`:`▲ 對 ${V.pl[k].name} 開火`);
     b.onpointerdown=e=>e.stopPropagation();
-    b.onclick=()=>{ if(mode==='cuff')submitMP({t:'item',slot:G.cuffPick,target:k});else submitMP({t:'shoot',target:k});};
-    b.onmouseenter=()=>{if(mode!=='cuff')mpGunAim(me,k);};
-    b.onmouseleave=()=>{if(mode!=='cuff'&&G.aim)mpGunAim(me,null);};
+    b.onclick=()=>{ if(mode==='cuff')submitMP({t:'item',slot:G.cuffPick,target:k});else if(mode==='horn')submitMP({t:'horn',slot:G.hornPick,target:k});else submitMP({t:'shoot',target:k});};
+    b.onmouseenter=()=>{if(mode==='shoot'||mode==='horn')mpGunAim(me,k);};
+    b.onmouseleave=()=>{if(mode==='shoot'&&G.aim)mpGunAim(me,null);};
     row.appendChild(b);
   }
   if(mode==='shoot'){
@@ -3935,21 +4207,22 @@ function mpShowBar(mode){
 }
 function submitMP(act){
   if(!G.canInput)return;closeItemPrev(true);
-  G.canInput=false;G.aim=false;G.adr=null;G.cuffPick=null;mpHideBar();setHint('');hush();$('tip').style.display='none';A.hi=null;
+  G.canInput=false;G.aim=false;G.adr=null;G.cuffPick=null;G.hornPick=null;G.jamPick=null;mpHideBar();setHint('');hush();$('tip').style.display='none';A.hi=null;
   const r=G.resolve;G.resolve=null;if(r)r(act);
 }
 function mpSetAim(v){
   if(v&&!G.aim)sfx('aim');
-  G.aim=v;G.cuffPick=null;G.adr=null;
+  G.aim=v;G.cuffPick=null;G.adr=null;G.hornPick=null;G.jamPick=null;
   if(v){mpShowBar('shoot');mpGunAim(MPS.me,null);setHint(DEV.touch?'點對手＝對他開火　點下方＝對自己開火':'點對手／←→ 選擇，Enter 開火；S↓ 對自己；Esc 放下');}
   else{mpHideBar();setGun('table');setHint(hintMain());}
 }
-function mpCancelPick(){G.adr=null;G.cuffPick=null;A.hi=null;hush();mpHideBar();setHint(hintMain());}
+function mpCancelPick(){G.adr=null;G.cuffPick=null;G.hornPick=null;G.jamPick=null;A.hi=null;hush();mpHideBar();setHint(hintMain());}
 function mpTagTap(k){
   if(!G.canInput||G.paused||G.state!=='game'||!MV)return;
-  if(k===MPS.me){if(G.aim)submitMP({t:'shoot',target:k});return;}
+  if(k===MPS.me){if(G.aim&&G.hornPick==null)submitMP({t:'shoot',target:k});return;}
   if(!MV.alive[k])return;
   if(G.cuffPick!=null){if(mpCuffTargets(MV,MPS.me).includes(k))submitMP({t:'item',slot:G.cuffPick,target:k});return;}
+  if(G.hornPick!=null){submitMP({t:'horn',slot:G.hornPick,target:k});return;}
   if(G.aim)submitMP({t:'shoot',target:k});
 }
 function mpHandleClick(h,touch){
@@ -3961,6 +4234,17 @@ function mpHandleClick(h,touch){
       if(it&&it!=='adrenaline'&&mpCanUse(V,me,it)){submitMP({t:'adr',slot:G.adr,tseat:h.side,tslot:h.i});return;}
       say(it==='adrenaline'?'不能偷腎上腺素':'這個道具現在無法使用',1400);sfx('bad');return;
     }
+    mpCancelPick();return;
+  }
+  if(G.jamPick!=null){
+    if(h&&h.k==='slot'&&h.side!==me&&V.alive[h.side]){
+      if(V.inv[h.side][h.i]){submitMP({t:'jam',slot:G.jamPick,tseat:h.side,tslot:h.i});return;}
+      sfx('bad');return;
+    }
+    mpCancelPick();return;
+  }
+  if(G.hornPick!=null){
+    if(h&&h.k==='seat'&&V.alive[h.seat]&&h.seat!==me){submitMP({t:'horn',slot:G.hornPick,target:h.seat});return;}
     mpCancelPick();return;
   }
   if(G.cuffPick!=null){
@@ -3976,7 +4260,7 @@ function mpHandleClick(h,touch){
     if(G.aim)mpSetAim(false);
     let ok=true,why='';
     if(it==='adrenaline'){if(!mpStealable(V,me).length){ok=false;why='對手桌上沒有可以偷的道具';}}
-    else if(!mpCanUse(V,me,it)){ok=false;why=it==='saw'?'槍管已經鋸短了':'沒有可以銬的對象';}
+    else if(!mpCanUse(V,me,it)){ok=false;why=it==='saw'?'槍管已經鋸短了':it==='horn'?'彈匣至少要有 2 發子彈':it==='jammer'?'對手桌上沒有道具可以干擾':'沒有可以銬的對象';}
     openItemPrev(me,h.i,it,ok,why,()=>mpUseSlot(h.i));
   }
 }
@@ -3984,6 +4268,14 @@ function mpUseSlot(i){
   const V=MV,me=MPS.me,it=V.inv[me][i];if(!it||!G.canInput)return;
   if(it==='adrenaline'){
     G.adr=i;A.hi={side:me,i};say(DEV.touch?'選擇要偷的道具（點對手桌上的道具）':'選擇要偷的道具（點對手桌上的道具，Esc 取消）');setHint('點擊對手桌上的道具');sfx('click');return;
+  }
+  if(it==='horn'){
+    const fo=mpAliveList(V).filter(k=>k!==me);
+    if(fo.length===1){submitMP({t:'horn',slot:i,target:fo[0]});return;}
+    G.hornPick=i;G.aim=false;A.hi={side:me,i};mpShowBar('horn');say('選擇喇叭槍第一發要射向的玩家');setHint('點擊玩家頭像或下方按鈕');return;
+  }
+  if(it==='jammer'){
+    G.jamPick=i;A.hi={side:me,i};say(DEV.touch?'選擇要干擾的道具（點對手桌上的道具）':'選擇要干擾的道具（點對手桌上的道具，Esc 取消）');setHint('點擊對手桌上的道具');sfx('click');return;
   }
   if(it==='cuffs'){
     const ct=mpCuffTargets(V,me);
@@ -3999,6 +4291,7 @@ function mpKey(e){
     const i=+e.key-1;
     if(G.adr!=null){ // 數字鍵：依序偷第 N 個可偷的道具
       const st=mpStealable(V,me);const t=st[i];if(t)submitMP({t:'adr',slot:G.adr,tseat:t.seat,tslot:t.slot});return true;}
+    if(G.jamPick!=null){const jt=mpJamTargets(V,me);const t=jt[i];if(t)submitMP({t:'jam',slot:G.jamPick,tseat:t.seat,tslot:t.slot});return true;}
     mpHandleClick({k:'slot',side:me,i},false);return true;
   }
   if(G.aim){
@@ -4011,7 +4304,7 @@ function mpKey(e){
     }
     if(e.key==='Enter'||e.key===' '){if(G.sel!=null&&opps[G.sel]!=null)submitMP({t:'shoot',target:opps[G.sel]});else if(opps.length===1)submitMP({t:'shoot',target:opps[0]});return true;}
     if(e.key==='ArrowDown'||e.key==='s'||e.key==='S'){submitMP({t:'shoot',target:me});return true;}
-  }else if((e.key===' '||e.key==='Enter')&&G.adr==null&&G.cuffPick==null){G.sel=null;mpSetAim(true);sfx('pump');return true;}
+  }else if((e.key===' '||e.key==='Enter')&&G.adr==null&&G.cuffPick==null&&G.hornPick==null&&G.jamPick==null){G.sel=null;mpSetAim(true);sfx('pump');return true;}
   return false;
 }
 function mpHoverAim(h){
@@ -4037,7 +4330,7 @@ $('mpBack').onclick=()=>scr('menu');
 $('mpReady').onclick=()=>{const me=MP.list&&MP.list[MP.me];mpSendHost({t:'ready',v:!(me&&me.ready)});};
 $('mpStart').onclick=()=>{if(!$('mpStart').disabled)mpHostStart();};
 $('mpLeave').onclick=()=>mpLeave(true);
-$('aimMPx').onclick=()=>{if(G.cuffPick!=null||G.adr!=null)mpCancelPick();else mpSetAim(false);};
+$('aimMPx').onclick=()=>{if(G.cuffPick!=null||G.adr!=null||G.hornPick!=null||G.jamPick!=null)mpCancelPick();else mpSetAim(false);};
 
 function mpHud(){
   const V=MV;let h='',p='';
